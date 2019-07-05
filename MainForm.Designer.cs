@@ -1,6 +1,6 @@
 ﻿namespace DataEncrypter
 {
-    partial class Form1
+    partial class MainForm
     {
         /// <summary>
         /// Erforderliche Designervariable.
