@@ -51,6 +51,14 @@ namespace DataEncrypter.CryptMethods
             return state;
         }
 
+        private void AddRoundKey(ref byte[] state, int index, ref byte[] roundKey)
+        {
+            for (int i = index; i < index + 16; i++)
+            {
+                state[i] ^= roundKey[i];
+            }
+        }
+
         private void SubByte(ref byte[] state, int index)
         {
             for (int i = index; i < index + 16; i++)
