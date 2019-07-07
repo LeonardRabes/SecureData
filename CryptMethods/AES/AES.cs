@@ -2,12 +2,18 @@
 
 namespace DataEncrypter.CryptMethods
 {
+    /// <summary>
+    /// Provides encryption and decryption with the Advanced Encryption Standard
+    /// </summary>
     public partial class AES
     {
+        /// <summary>
+        /// Expanded keyset for encryption and decryption.
+        /// </summary>
         public byte[][] ExpandedKeys {get; internal set;}
 
         /// <summary>
-        /// Creates a object for encryption and decryption.
+        /// Creates a object for encryption and decryption with the Advanced Encryption Standard.
         /// </summary>
         /// <param name="key">Cypher to en-/decrypt</param>
         public AES(byte[] key)
@@ -15,6 +21,10 @@ namespace DataEncrypter.CryptMethods
             ExpandedKeys = KeyExpansion(key);
         }
 
+        /// <summary>
+        /// Encrypts data with the Advanced Encryption Standard.
+        /// </summary>
+        /// <param name="plaintext">Plaintext, which is encrypted in place</param>
         public void Encrypt(ref byte[] plaintext)
         {
             for (int index = 0; index < plaintext.Length; index+=16)
@@ -38,6 +48,10 @@ namespace DataEncrypter.CryptMethods
             }
         }
 
+        /// <summary>
+        /// Decrypts data with the Advanced Encryption Standard.
+        /// </summary>
+        /// <param name="plaintext">Cyphertext, which is decrypted in place</param>
         public void Decrypt(ref byte[] cyphertext)
         {
             for (int index = 0; index < cyphertext.Length; index += 16)
@@ -61,6 +75,11 @@ namespace DataEncrypter.CryptMethods
             }
         }
 
+        /// <summary>
+        /// Creates Keys for en-/decryption rounds.
+        /// </summary>
+        /// <param name="initialKey">The key to create 10 additional keys.</param>
+        /// <returns>Returns an array with 11 round keys</returns>
         private byte[][] KeyExpansion(byte[] initialKey)
         {
             //add init key
@@ -70,13 +89,19 @@ namespace DataEncrypter.CryptMethods
             //generate keys for each round
             for (int keyIndex = 1; keyIndex < expKeys.Length; keyIndex++)
             {
-                expKeys[keyIndex] = GenerateKey(expKeys[keyIndex - 1], keyIndex);
+                expKeys[keyIndex] = GenerateRoundKey(expKeys[keyIndex - 1], keyIndex);
             }
 
             return expKeys;
         }
 
-        private byte[] GenerateKey(byte[] prevKey, int keyIndex)
+        /// <summary>
+        /// Generates a new Key.
+        /// </summary>
+        /// <param name="prevKey">Base for a new key.</param>
+        /// <param name="keyIndex">The round of the new key</param>
+        /// <returns></returns>
+        private byte[] GenerateRoundKey(byte[] prevKey, int keyIndex)
         {
             byte[] newKey = new byte[16];
             //get row3 of key
@@ -127,7 +152,12 @@ namespace DataEncrypter.CryptMethods
         //  X2   X6   X10  X14  row2
         //  X3   X7   X11  X15  row3
 
-        
+        /// <summary>
+        /// Adds a round key to a 128 bit block.
+        /// </summary>
+        /// <param name="state">Reference to the current en-/decryption state</param>
+        /// <param name="index">Index of the first byte of the block</param>
+        /// <param name="roundKey">RoundKey</param>
         private void AddRoundKey(ref byte[] state, int index, byte[] roundKey)
         {
             for (int i = index; i < index + 16; i++)
@@ -136,6 +166,11 @@ namespace DataEncrypter.CryptMethods
             }
         }
 
+        /// <summary>
+        /// Substitutes all bytes of a 128 bit block by bytes from the sbox lookup table.
+        /// </summary>
+        /// <param name="state">Reference to the current en-/decryption state</param>
+        /// <param name="index">Index of the first byte of the block</param>
         private void SubByte(ref byte[] state, int index)
         {
             for (int i = index; i < index + 16; i++)
@@ -144,6 +179,11 @@ namespace DataEncrypter.CryptMethods
             }
         }
 
+        /// <summary>
+        /// Substitutes all bytes of a 128 bit block by bytes from the inverse sbox lookup table.
+        /// </summary>
+        /// <param name="state">Reference to the current en-/decryption state</param>
+        /// <param name="index">Index of the first byte of the block</param>
         private void InvSubByte(ref byte[] state, int index)
         {
             for (int i = index; i < index + 16; i++)
@@ -152,6 +192,11 @@ namespace DataEncrypter.CryptMethods
             }
         }
 
+        /// <summary>
+        /// Shifts bytes (amount by row index) to the right of a 128 bit block.
+        /// </summary>
+        /// <param name="state">Reference to the current en-/decryption state</param>
+        /// <param name="index">Index of the first byte of the block</param>
         private void ShiftRows(ref byte[] state, int index)
         {
             for (byte row = 0; row < 4; row++)
@@ -175,6 +220,11 @@ namespace DataEncrypter.CryptMethods
             }
         }
 
+        /// <summary>
+        /// Shifts bytes (amount by row index) to the left of a 128 bit block.
+        /// </summary>
+        /// <param name="state">Reference to the current en-/decryption state</param>
+        /// <param name="index">Index of the first byte of the block</param>
         private void InvShiftRows(ref byte[] state, int index)
         {
             for (byte row = 0; row < 4; row++)
@@ -197,6 +247,11 @@ namespace DataEncrypter.CryptMethods
             }
         }
 
+        /// <summary>
+        /// Mixes columns according to the AES (https://en.wikipedia.org/wiki/Rijndael_MixColumns).
+        /// </summary>
+        /// <param name="state">Reference to the current en-/decryption state</param>
+        /// <param name="index">Index of the first byte of the block</param>
         private void MixColumns(ref byte[] state, int index)
         {
             byte[] buffer = new byte[16];
@@ -216,6 +271,11 @@ namespace DataEncrypter.CryptMethods
             }
         }
 
+        /// <summary>
+        /// Mixes columns inverse according to the AES (https://en.wikipedia.org/wiki/Rijndael_MixColumns).
+        /// </summary>
+        /// <param name="state">Reference to the current en-/decryption state</param>
+        /// <param name="index">Index of the first byte of the block</param>
         private void InvMixColumns(ref byte[] state, int index)
         {
             byte[] buffer = new byte[16];
