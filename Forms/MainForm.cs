@@ -21,9 +21,13 @@ namespace DataEncrypter
 
         private void MainForm_Load(object sender, EventArgs e)
         {
-            var file = new SecureFile("soundfile.mp3", "Passwort01234567");
-            file.Encrypt();
-            file.Save("soundfile.enc");
+            var file = new SecureFile("testvid.secf", "Passwort01234567");
+            //file.Encrypt();
+            //file.Save("soundfile.secf");
+            file.Decyrpt();
+
+            file.Save();
+
             file.Dispose();
 
             int maxLength = 536_870_912;
