@@ -86,6 +86,20 @@ namespace DataEncrypter.CryptMethods
         }
 
         /// <summary>
+        /// Padds data to fit into the 16byte blocksize.
+        /// </summary>
+        /// <param name="state">Reference to the current encryption state</param>
+        public void Padding(ref byte[] state)
+        {
+            int l = state.Length;
+
+            if (l % 16 != 0)
+            {
+                Array.Resize(ref state, 16 * (int)Math.Ceiling(l / 16F));
+            }
+        }
+
+        /// <summary>
         /// Creates Keys for en-/decryption rounds.
         /// </summary>
         /// <param name="initialKey">The key to create 10 additional keys, key must be exactly 16 bytes long.</param>

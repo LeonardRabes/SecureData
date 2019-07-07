@@ -6,6 +6,9 @@ using DataEncrypter.CryptMethods;
 
 namespace DataEncrypter.IO
 {
+    /// <summary>
+    /// Provides functionality to handle files for encryption and decryption.
+    /// </summary>
     public class SecureFile : IDisposable
     {
         public FileStream FileState { get; internal set; }
@@ -17,6 +20,12 @@ namespace DataEncrypter.IO
         private string _fileName;
         private string _fileExtension;
 
+        /// <summary>
+        /// Contructs basic data for file en-/decryption. This includes a temporary file to save data.
+        /// </summary>
+        /// <param name="filePath">File path to the file, which will be en-/decrypted.</param>
+        /// <param name="key">The key for the CryptMethod</param>
+        /// <param name="method">The method of en-/decryption</param>
         public SecureFile(string filePath, string key, CryptMethod method = CryptMethod.AES)
         {
             switch (method)
@@ -29,14 +38,19 @@ namespace DataEncrypter.IO
                     throw new NotImplementedException();
             }
 
+            //create a temporary file to save data to
             string stateTempName = $"$tmpSecFile{DateTime.Now.ToBinary().ToString()}";
             FileState = new FileStream(stateTempName, FileMode.Create);
             File.SetAttributes(stateTempName, FileAttributes.Hidden);
 
+            //open target file
             _filePath = filePath;
             _fileStream = new FileStream(filePath, FileMode.Open);
         }
 
+        /// <summary>
+        /// Encrypts the file, which was provided to the constructor.
+        /// </summary>
         public void Encrypt()
         {
             FileState.Position = 0;
@@ -63,21 +77,21 @@ namespace DataEncrypter.IO
             //encryption of file
             while (_fileStream.Length - _fileStream.Position > 1)
             {
-                int maxLength = 536_870_912; //int.MaxValue / 4 => roughly 500mb
+                int maxLength = 1_048_576; //int.MaxValue / 2048 => roughly 1mb
 
-                byte[] state = reader.ReadBytes((int)Math.Min(_fileStream.Length - _fileStream.Position, maxLength));
-
-                if (state.Length % 16 != 0)
-                {
-                    Padding(ref state); //add padding to have no incomplet blocks
-                }
-
+                byte[] state = reader.ReadBytes((int)Math.Min(_fileStream.Length - _fileStream.Position, maxLength)); //read chunks from file or the entire file if file < 1mb
+ 
+                _cryptMethod.Padding(ref state); //add padding to have no incomplete blocks
+                
                 _cryptMethod.Encrypt(ref state);
 
                 writer.Write(state);
             }
         }
 
+        /// <summary>
+        /// Decrypts the file, which was provided to the constructor.
+        /// </summary>
         public void Decyrpt()
         {
             FileState.Position = 0;
@@ -103,17 +117,24 @@ namespace DataEncrypter.IO
             //decryption of file
             while (_fileStream.Length - _fileStream.Position > 1)
             {
-                int maxLength = 536_870_912; //int.MaxValue / 4 => roughly 500mb
+                int maxLength = 1_048_576; //int.MaxValue / 2048 => roughly 1mb
 
                 byte[] state = reader.ReadBytes((int)Math.Min(_fileStream.Length - _fileStream.Position, maxLength));
 
                 _cryptMethod.Decrypt(ref state);
 
                 writer.Write(state);
+                writer.Flush();
             }
             FileState.SetLength(fileLength); //set stream to original length
         }
 
+        /// <summary>
+        /// Saves the file, which was provided to the constructor.
+        /// </summary>
+        /// <param name="dirPath"></param>
+        /// <param name="fileName"></param>
+        /// <param name="fileExtension"></param>
         public void Save(string dirPath = "", string fileName = null, string fileExtension = null)
         {
             if (fileName == null)
@@ -131,6 +152,9 @@ namespace DataEncrypter.IO
             fstream.Close();
         }
 
+        /// <summary>
+        /// Disposes this instance and removes any created temporary files.
+        /// </summary>
         public void Dispose()
         {
             //Dispose temp file by overwriting with 0
@@ -145,9 +169,14 @@ namespace DataEncrypter.IO
 
             string name = FileState.Name;
             FileState.Close();
+            _fileStream.Close();
             File.Delete(name);
         }
 
+        /// <summary>
+        /// Converts a string to a byte array.
+        /// </summary>
+        /// <param name="str">String to be converted</param>
         private byte[] ToByte(string str)
         {
             byte[] bytes = new byte[str.Length];
@@ -159,6 +188,10 @@ namespace DataEncrypter.IO
             return bytes;
         }
 
+        /// <summary>
+        /// Converts a byte array to a string.
+        /// </summary>
+        /// <param name="str">Bytes to be converted</param>
         private string ToString(byte[] bytes)
         {
             string str = "";
@@ -170,6 +203,11 @@ namespace DataEncrypter.IO
             return str;
         }
 
+        /// <summary>
+        /// Converts a string to a byte array with fixed size. Is null-terminated
+        /// </summary>
+        /// <param name="str">String to be converted</param>
+        /// <param name="length">Length of the array</param>
         private byte[] ToFixSizedByte(string str, int length)
         {
             byte[] bytes = new byte[length];
@@ -183,6 +221,12 @@ namespace DataEncrypter.IO
             return bytes;
         }
 
+        /// <summary>
+        /// Converts a byte array with fixed size to a string. Is null-terminated
+        /// </summary>
+        /// <param name="bytes">Bytes to be converted</param>
+        /// <param name="startIndex"></param>
+        /// <returns></returns>
         private string FromFixSizedByte(byte[] bytes, int startIndex)
         {
             string str = "";
@@ -199,18 +243,6 @@ namespace DataEncrypter.IO
             }
 
             return str;
-        }
-
-        private static byte[] Padding(ref byte[] state)
-        {
-            int l = state.Length;
-
-            if (l % 128 != 0)
-            {
-                Array.Resize(ref state, 16 * (int)Math.Ceiling(l / 16F));
-            }
-
-            return state;
-        }    
+        }  
     }
 }

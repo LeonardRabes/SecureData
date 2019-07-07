@@ -21,19 +21,22 @@ namespace DataEncrypter
 
         private void MainForm_Load(object sender, EventArgs e)
         {
-            var file = new SecureFile("testvid.secf", "Passwort01234567");
-            //file.Encrypt();
-            //file.Save("soundfile.secf");
-            file.Decyrpt();
+            
+        }
 
-            file.Save();
+        private void MainForm_Shown(object sender, EventArgs e)
+        {
+            var file = new SecureFile("testvid.mp4", "Passwort01234567");
+            file.Encrypt();
+            //file.Save("soundfile.secf");
+            //file.Decyrpt();
+
+            file.Save("", "out");
 
             file.Dispose();
 
             int maxLength = 536_870_912;
             byte[] array = new byte[maxLength];
         }
-
-        
     }
 }
