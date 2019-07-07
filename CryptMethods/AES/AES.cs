@@ -5,7 +5,7 @@ namespace DataEncrypter.CryptMethods
     /// <summary>
     /// Provides encryption and decryption with the Advanced Encryption Standard
     /// </summary>
-    public partial class AES
+    public partial class AES : ICryptMethod
     {
         /// <summary>
         /// Expanded keyset for encryption and decryption.
@@ -24,9 +24,14 @@ namespace DataEncrypter.CryptMethods
         /// <summary>
         /// Encrypts data with the Advanced Encryption Standard.
         /// </summary>
-        /// <param name="plaintext">Plaintext, which is encrypted in place</param>
+        /// <param name="plaintext">Plaintext, which is encrypted in place, length must be a multible of 16</param>
         public void Encrypt(ref byte[] plaintext)
         {
+            if (plaintext.Length % 16 != 0)
+            {
+                throw new Exception("Incorrect Length: Length must be a multible of 16!");
+            }
+
             for (int index = 0; index < plaintext.Length; index+=16)
             {
                 //initial round
@@ -51,9 +56,14 @@ namespace DataEncrypter.CryptMethods
         /// <summary>
         /// Decrypts data with the Advanced Encryption Standard.
         /// </summary>
-        /// <param name="plaintext">Cyphertext, which is decrypted in place</param>
+        /// <param name="plaintext">Cyphertext, which is decrypted in place, length must be a multible of 16</param>
         public void Decrypt(ref byte[] cyphertext)
         {
+            if (cyphertext.Length % 16 != 0)
+            {
+                throw new Exception("Incorrect Length: Length must be a multible of 16!");
+            }
+
             for (int index = 0; index < cyphertext.Length; index += 16)
             {
                 //initial round
@@ -78,10 +88,15 @@ namespace DataEncrypter.CryptMethods
         /// <summary>
         /// Creates Keys for en-/decryption rounds.
         /// </summary>
-        /// <param name="initialKey">The key to create 10 additional keys.</param>
+        /// <param name="initialKey">The key to create 10 additional keys, key must be exactly 16 bytes long.</param>
         /// <returns>Returns an array with 11 round keys</returns>
         private byte[][] KeyExpansion(byte[] initialKey)
         {
+            if (initialKey.Length != 16)
+            {
+                throw new Exception("Incorrect Length: Length must be 16!");
+            }
+
             //add init key
             byte[][] expKeys = new byte[11][];
             expKeys[0] = initialKey;
