@@ -20,19 +20,15 @@ namespace DataEncrypter
 
         private void MainForm_Load(object sender, EventArgs e)
         {
-            byte[] text = ToByte("Hallo du welt ic");
-            AES aes = new AES(ToByte("test"));
-
-            aes.ShiftRows(ref text, 0);
-            aes.MixColumns(ref text, 0);
-
-            aes.InvMixColumns(ref text, 0);
-            aes.InvShiftRows(ref text, 0);
-
+            AES aes = new AES(ToByte("Passwort01234567"));
             
+            byte[] text = ToByte("TestTestTestTestTestTestTestTestTestTestTestTestTestTestTestTest");
 
-            MessageBox.Show(ToString(text));
+            aes.Encrypt(ref text);
+            string str = ToString(text);
 
+            aes.Decrypt(ref text);
+            str = ToString(text);
         }
 
         private byte[] ToByte(string str)

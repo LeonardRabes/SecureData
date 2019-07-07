@@ -4,6 +4,120 @@ namespace DataEncrypter.CryptMethods
 {
     public partial class AES
     {
+        public byte[][] ExpandedKeys {get; internal set;}
+
+        /// <summary>
+        /// Creates a object for encryption and decryption.
+        /// </summary>
+        /// <param name="key">Cypher to en-/decrypt</param>
+        public AES(byte[] key)
+        {
+            ExpandedKeys = KeyExpansion(key);
+        }
+
+        public void Encrypt(ref byte[] plaintext)
+        {
+            for (int index = 0; index < plaintext.Length; index+=16)
+            {
+                //initial round
+                AddRoundKey(ref plaintext, index, ExpandedKeys[0]);
+
+                //encryption rounds
+                for (int round = 1; round < 10; round++)
+                {
+                    SubByte(ref plaintext, index);
+                    ShiftRows(ref plaintext, index);
+                    MixColumns(ref plaintext, index);
+                    AddRoundKey(ref plaintext, index, ExpandedKeys[round]);
+                }
+
+                //last round
+                SubByte(ref plaintext, index);
+                ShiftRows(ref plaintext, index);
+                AddRoundKey(ref plaintext, index, ExpandedKeys[10]);
+            }
+        }
+
+        public void Decrypt(ref byte[] cyphertext)
+        {
+            for (int index = 0; index < cyphertext.Length; index += 16)
+            {
+                //initial round
+                AddRoundKey(ref cyphertext, index, ExpandedKeys[10]);
+                InvShiftRows(ref cyphertext, index);
+                InvSubByte(ref cyphertext, index);
+
+                //decryption rounds
+                for (int round = 9; round > 0; round--)
+                {
+                    AddRoundKey(ref cyphertext, index, ExpandedKeys[round]);
+                    InvMixColumns(ref cyphertext, index);
+                    InvShiftRows(ref cyphertext, index);
+                    InvSubByte(ref cyphertext, index);
+                }
+
+                //last round
+                AddRoundKey(ref cyphertext, index, ExpandedKeys[0]);
+            }
+        }
+
+        private byte[][] KeyExpansion(byte[] initialKey)
+        {
+            //add init key
+            byte[][] expKeys = new byte[11][];
+            expKeys[0] = initialKey;
+
+            //generate keys for each round
+            for (int keyIndex = 1; keyIndex < expKeys.Length; keyIndex++)
+            {
+                expKeys[keyIndex] = GenerateKey(expKeys[keyIndex - 1], keyIndex);
+            }
+
+            return expKeys;
+        }
+
+        private byte[] GenerateKey(byte[] prevKey, int keyIndex)
+        {
+            byte[] newKey = new byte[16];
+            //get row3 of key
+            byte[] row3 = { prevKey[12], prevKey[13], prevKey[14], prevKey[15] };
+
+            //rotate bytes
+            byte buffer = row3[0];
+            row3[0] = row3[1];
+            row3[1] = row3[2];
+            row3[2] = row3[3];
+            row3[3] = buffer;
+
+            //substitute bytes
+            for (int i = 0; i < 4; i++)
+            {
+                row3[i] = _sbox[row3[i]];
+            }
+
+            //xor rcon
+            row3[0] ^= _rcon[keyIndex];
+
+            //xor with row0
+            for (int i = 0; i < 4; i++)
+            {
+                newKey[i] = (byte)(row3[i] ^ prevKey[i]);
+            }
+
+            //create next row(n) with row of old key(n) and and prev generated row(n-1)
+            for (int row = 1; row < 4; row++)
+            {
+                int start = row * 4;
+
+                for (int i = start; i < start + 4; i++)
+                {
+                    newKey[i] = (byte)(prevKey[i] ^ newKey[i - 4]);
+                }
+            }
+
+            return newKey;
+        }
+
         //Structure of 128Bit block:
         //
         //  col0 col1 col2 col3
@@ -13,49 +127,12 @@ namespace DataEncrypter.CryptMethods
         //  X2   X6   X10  X14  row2
         //  X3   X7   X11  X15  row3
 
-        public AES(byte[] key)
-        {
-
-        }
-
-        public byte[] Encrypt(ref byte[] plaintext, byte[] cypher)
-        {
-            Padding(ref plaintext);
-            for (int i = 0; i < plaintext.Length; i+=16)
-            {
-                
-            }
-
-            throw new NotImplementedException();
-        }
-
-        public byte[] Decrypt(byte[] cyphertext, byte[] cypher)
-        {
-            throw new NotImplementedException();
-        }
-
-        private void KeySchedule()
-        {
-            throw new NotImplementedException();
-        }
-
-        private byte[] Padding(ref byte[] state)
-        {
-            int l = state.Length;
-
-            if (l % 16 != 0)
-            {
-                Array.Resize(ref state, l + l % 16);
-            }
-
-            return state;
-        }
-
-        private void AddRoundKey(ref byte[] state, int index, ref byte[] roundKey)
+        
+        private void AddRoundKey(ref byte[] state, int index, byte[] roundKey)
         {
             for (int i = index; i < index + 16; i++)
             {
-                state[i] ^= roundKey[i];
+                state[i] ^= roundKey[i - index]; //xor state with round key
             }
         }
 
@@ -75,7 +152,7 @@ namespace DataEncrypter.CryptMethods
             }
         }
 
-        public void ShiftRows(ref byte[] state, int index)
+        private void ShiftRows(ref byte[] state, int index)
         {
             for (byte row = 0; row < 4; row++)
             {
@@ -98,7 +175,7 @@ namespace DataEncrypter.CryptMethods
             }
         }
 
-        public void InvShiftRows(ref byte[] state, int index)
+        private void InvShiftRows(ref byte[] state, int index)
         {
             for (byte row = 0; row < 4; row++)
             {
@@ -120,17 +197,17 @@ namespace DataEncrypter.CryptMethods
             }
         }
 
-        public void MixColumns(ref byte[] state, int index)
+        private void MixColumns(ref byte[] state, int index)
         {
             byte[] buffer = new byte[16];
             for (int col = 0; col < 4; col++)
             {
-                int offset = col * 4;
+                int offset = index + col * 4;
 
-                buffer[offset + 0] = (byte)(_mul2[state[offset + 0]] ^ _mul3[state[offset + 1]] ^ state[offset + 2] ^ state[offset + 3]);
-                buffer[offset + 1] = (byte)(state[offset + 0] ^ _mul2[state[offset + 1]] ^ _mul3[state[offset + 2]] ^ state[offset + 3]);
-                buffer[offset + 2] = (byte)(state[offset + 0] ^ state[offset + 1] ^ _mul2[state[offset + 2]] ^ _mul3[state[offset + 3]]);
-                buffer[offset + 3] = (byte)(_mul3[state[offset + 0]] ^ state[offset + 1] ^ state[offset + 2] ^ _mul2[state[offset + 3]]);
+                buffer[offset + 0 - index] = (byte)(_mul2[state[offset + 0]] ^ _mul3[state[offset + 1]] ^ state[offset + 2] ^ state[offset + 3]);
+                buffer[offset + 1 - index] = (byte)(state[offset + 0] ^ _mul2[state[offset + 1]] ^ _mul3[state[offset + 2]] ^ state[offset + 3]);
+                buffer[offset + 2 - index] = (byte)(state[offset + 0] ^ state[offset + 1] ^ _mul2[state[offset + 2]] ^ _mul3[state[offset + 3]]);
+                buffer[offset + 3 - index] = (byte)(_mul3[state[offset + 0]] ^ state[offset + 1] ^ state[offset + 2] ^ _mul2[state[offset + 3]]);
             }
 
             for (int i = 0; i < 16; i++)
@@ -139,18 +216,18 @@ namespace DataEncrypter.CryptMethods
             }
         }
 
-        public void InvMixColumns(ref byte[] state, int index)
+        private void InvMixColumns(ref byte[] state, int index)
         {
             byte[] buffer = new byte[16];
 
             for (int col = 0; col < 4; col++)
             {
-                int offset = col * 4;
+                int offset = index + col * 4;
 
-                buffer[offset + 0] = (byte)(_mul14[state[offset + 0]] ^ _mul11[state[offset + 1]] ^ _mul13[state[offset + 2]] ^ _mul9[state[offset + 3]]);
-                buffer[offset + 1] = (byte)(_mul9[state[offset + 0]] ^ _mul14[state[offset + 1]] ^ _mul11[state[offset + 2]] ^ _mul13[state[offset + 3]]);
-                buffer[offset + 2] = (byte)(_mul13[state[offset + 0]] ^ _mul9[state[offset + 1]] ^ _mul14[state[offset + 2]] ^ _mul11[state[offset + 3]]);
-                buffer[offset + 3] = (byte)(_mul11[state[offset + 0]] ^ _mul13[state[offset + 1]] ^ _mul9[state[offset + 2]] ^ _mul14[state[offset + 3]]);
+                buffer[offset + 0 - index] = (byte)(_mul14[state[offset + 0]] ^ _mul11[state[offset + 1]] ^ _mul13[state[offset + 2]] ^ _mul9[state[offset + 3]]);
+                buffer[offset + 1 - index] = (byte)(_mul9[state[offset + 0]] ^ _mul14[state[offset + 1]] ^ _mul11[state[offset + 2]] ^ _mul13[state[offset + 3]]);
+                buffer[offset + 2 - index] = (byte)(_mul13[state[offset + 0]] ^ _mul9[state[offset + 1]] ^ _mul14[state[offset + 2]] ^ _mul11[state[offset + 3]]);
+                buffer[offset + 3 - index] = (byte)(_mul11[state[offset + 0]] ^ _mul13[state[offset + 1]] ^ _mul9[state[offset + 2]] ^ _mul14[state[offset + 3]]);
             }
 
             for (int i = 0; i < 16; i++)
