@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using DataEncrypter.CryptMethods;
+using DataEncrypter.IO;
 
 namespace DataEncrypter
 {
@@ -20,6 +21,10 @@ namespace DataEncrypter
 
         private void MainForm_Load(object sender, EventArgs e)
         {
+            var file = new SecureFile("soundfile.mp3", "Passwort01234567");
+            file.Encrypt();
+            file.Save("soundfile.enc");
+
             int maxLength = 536_870_912;
             byte[] array = new byte[maxLength];
         }
