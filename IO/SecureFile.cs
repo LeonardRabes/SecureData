@@ -80,12 +80,14 @@ namespace DataEncrypter.IO
 
         public void Dispose()
         {
-            using (var writer = new BinaryWriter(FileState))
+            //Dispose temp file by overwriting with 0
+            FileState.Position = 0;
+            byte[] bytes = new byte[16384];
+            long amount = (FileState.Length / bytes.Length + 1);
+
+            for (long i = 0; i < amount; i++)
             {
-                for (long i = 0; i < FileState.Length; i++)
-                {
-                    writer.Write((byte)0);
-                }
+                FileState.Write(bytes, 0, bytes.Length);
             }
 
             string name = FileState.Name;

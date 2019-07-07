@@ -24,6 +24,7 @@ namespace DataEncrypter
             var file = new SecureFile("soundfile.mp3", "Passwort01234567");
             file.Encrypt();
             file.Save("soundfile.enc");
+            file.Dispose();
 
             int maxLength = 536_870_912;
             byte[] array = new byte[maxLength];
