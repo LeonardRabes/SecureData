@@ -32,5 +32,11 @@ namespace DataEncrypter.CryptMethods
         /// </summary>
         /// <param name="state">Reference to the current encryption state</param>
         void Padding(ref byte[] state);
+
+        /// <summary>
+        /// Updates the key within the algorithm.
+        /// </summary>
+        /// <param name="key">Key for en-/decryption</param>
+        void UpdateKey(byte[] key);
     }
 }

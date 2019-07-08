@@ -102,15 +102,53 @@ namespace DataEncrypter.CryptMethods
         }
 
         /// <summary>
+        /// Updates the key by restarting the key expansion.
+        /// </summary>
+        /// <param name="key">Key for en-/decryption</param>
+        public void UpdateKey(byte[] key)
+        {
+            ExpandedKeys = KeyExpansion(key);
+        }
+
+        /// <summary>
         /// Creates Keys for en-/decryption rounds.
         /// </summary>
-        /// <param name="initialKey">The key to create 10 additional keys, key must be exactly 16 bytes long.</param>
+        /// <param name="initialKey">The key to create 10 additional keys.</param>
         /// <returns>Returns an array with 11 round keys</returns>
         private byte[][] KeyExpansion(byte[] initialKey)
         {
-            if (initialKey.Length != 16)
+            if (initialKey.Length < 16) //lengthen the key to correct length by repeating the key
             {
-                throw new Exception("Incorrect Length: Length must be 16!");
+                byte[] longerKey = new byte[16];
+
+                int shortKeyCount = 0;
+                for (int i = 0; i < 16; i++)
+                {
+                    if (shortKeyCount >= initialKey.Length)
+                    {
+                        shortKeyCount = 0;
+                    }
+                    longerKey[i] = initialKey[shortKeyCount++];
+                }
+                initialKey = longerKey;
+            }
+            else if (initialKey.Length > 16) //shorten the key to correct length xor the longer bytes to begining bytes
+            {
+                byte[] shorterKey = new byte[16];
+
+                for (int i = 0; i < initialKey.Length; i++)
+                {
+                    if (i < 16)
+                    {
+                        shorterKey[i] = initialKey[i];
+                    }
+                    else
+                    {
+                        shorterKey[i - 16] ^= initialKey[i];
+                    }
+                }
+
+                initialKey = shorterKey;
             }
 
             //add init key

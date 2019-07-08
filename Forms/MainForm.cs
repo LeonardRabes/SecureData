@@ -26,10 +26,12 @@ namespace DataEncrypter
 
         private void MainForm_Shown(object sender, EventArgs e)
         {
-            var file = new SecureFile("testvid.mp4", "Passwort01234567");
-            file.Encrypt();
-            //file.Save("soundfile.secf");
-            //file.Decyrpt();
+            bool isSECF = SecureFile.IsSecureFile("soundfile.mp3");
+            var file = new SecureFile("out.secf", "Passwort01234567abc");
+
+            bool keyValid = file.ValidateKeyForDecryption();
+            //file.Encrypt();
+            file.Decyrpt();
 
             file.Save("", "out");
 

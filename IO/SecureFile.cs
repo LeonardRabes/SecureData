@@ -14,11 +14,16 @@ namespace DataEncrypter.IO
         public FileStream FileState { get; internal set; }
 
         private ICryptMethod _cryptMethod;
-        private byte[] _cryptName;
+        private byte[] _cryptType;
         private string _filePath;
         private FileStream _fileStream;
         private string _fileName;
         private string _fileExtension;
+
+        private static string _secureFileType = "SECF"; //abreviation: SECureFile
+        private static int _secureHeaderSize = 80;
+        private static int _chunkSize = 1_048_576; //int.MaxValue / 2048 => roughly 1mb
+        private static string _decryptionValidation = "decryption_valid";
 
         /// <summary>
         /// Contructs basic data for file en-/decryption. This includes a temporary file to save data.
@@ -32,7 +37,7 @@ namespace DataEncrypter.IO
             {
                 case CryptMethod.AES:
                     _cryptMethod = new AES(ToByte(key));
-                    _cryptName = ToByte("SECFAES"); //abreviation: SECureFile AdvancedEncryptionStandard
+                    _cryptType = ToByte(_secureFileType + "AES");
                     break;
                 default:
                     throw new NotImplementedException();
@@ -44,17 +49,17 @@ namespace DataEncrypter.IO
             File.SetAttributes(stateTempName, FileAttributes.Hidden);
 
             //open target file
-            _filePath = filePath;
-            _fileStream = new FileStream(filePath, FileMode.Open);
+            UpdateFile(filePath);
         }
 
         /// <summary>
-        /// Encrypts the file, which was provided to the constructor.
+        /// Encrypts the file, which was provided to this instance.
         /// </summary>
         public void Encrypt()
         {
             FileState.Position = 0;
             _fileStream.Position = 0;
+
             _fileName = Path.GetFileNameWithoutExtension(_filePath);
             _fileExtension = ".secf"; //new file extension after encryption
 
@@ -62,13 +67,14 @@ namespace DataEncrypter.IO
             var reader = new BinaryReader(_fileStream);
 
             //write unsecure header
-            writer.Write(_cryptName);                                                //file type | 7bytes
+            writer.Write(_cryptType);                                                //file type | 7bytes
 
-            //secure header | 64 bytes
+            //secure header | 80 bytes
             List<byte> secureHeader = new List<byte>();
             secureHeader.AddRange(BitConverter.GetBytes(_fileStream.Length));        //length of orig file | 8bytes
             secureHeader.AddRange(ToFixSizedByte(_fileName, 40));                    //orig name of file | 40bytes
             secureHeader.AddRange(ToFixSizedByte(Path.GetExtension(_filePath), 16)); //orig file extension | 16bytes
+            secureHeader.AddRange(ToByte(_decryptionValidation));                    //validation string to determine if decryption is valid | 16bytes
 
             byte[] sh = secureHeader.ToArray();
             _cryptMethod.Encrypt(ref sh, 0);
@@ -77,9 +83,7 @@ namespace DataEncrypter.IO
             //encryption of file
             while (_fileStream.Length - _fileStream.Position > 1)
             {
-                int chunkSize = 1_048_576; //int.MaxValue / 2048 => roughly 1mb
-
-                byte[] state = reader.ReadBytes((int)Math.Min(_fileStream.Length - _fileStream.Position, chunkSize)); //read chunks from file or the entire file if file < 1mb
+                byte[] state = reader.ReadBytes((int)Math.Min(_fileStream.Length - _fileStream.Position, _chunkSize)); //read chunks from file or the entire file if file < 1mb
  
                 _cryptMethod.Padding(ref state); //add padding to have no incomplete blocks
                 
@@ -90,51 +94,56 @@ namespace DataEncrypter.IO
         }
 
         /// <summary>
-        /// Decrypts the file, which was provided to the constructor.
+        /// Decrypts the file, which was provided to this instance.
         /// </summary>
         public void Decyrpt()
         {
             FileState.Position = 0;
             _fileStream.Position = 0;
+
             var writer = new BinaryWriter(FileState);
             var reader = new BinaryReader(_fileStream);
 
             //check file type
-            if (reader.ReadInt32() != BitConverter.ToInt32(ToByte("SECF"), 0))
+            if (reader.ReadInt32() != BitConverter.ToInt32(ToByte(_secureFileType), 0))
             {
                 throw new Exception("Not SECF FileType!");
             }
-            string encryptionMethod = ToString(reader.ReadBytes(3)); //write encryption method and file type in header
+            string encryptionMethod = ToString(reader.ReadBytes(3)); //read encryption method
 
-            //secure header | 64bytes
-            byte[] secureHeader = reader.ReadBytes(64);
+            //secure header | 80bytes
+            byte[] secureHeader = reader.ReadBytes(_secureHeaderSize);
             _cryptMethod.Decrypt(ref secureHeader, 0);
 
             long fileLength = BitConverter.ToInt64(secureHeader, 0);   //read length of original file | 8bytes
             _fileName = FromFixSizedByte(secureHeader, 8);             //name of original file | 40bytes
             _fileExtension = FromFixSizedByte(secureHeader, 48);       //file extension of original file | 16bytes
+            string validation = ToString(secureHeader, 64);            //read validation | 16bytes
+
+            if (validation != _decryptionValidation) //check if key is correct
+            {
+                throw new Exception("Incorrect Key!");
+            }
 
             //decryption of file
             while (_fileStream.Length - _fileStream.Position > 1)
             {
-                int chunkSize = 1_048_576; //int.MaxValue / 2048 => roughly 1mb
-
-                byte[] state = reader.ReadBytes((int)Math.Min(_fileStream.Length - _fileStream.Position, chunkSize)); //read chunks from file or the entire file if file < 1mb
+                byte[] state = reader.ReadBytes((int)Math.Min(_fileStream.Length - _fileStream.Position, _chunkSize)); //read chunks from file or the entire file if file < 1mb
 
                 _cryptMethod.Decrypt(ref state, 0);
 
                 writer.Write(state);
                 writer.Flush();
             }
-            FileState.SetLength(fileLength); //set stream to original length
+            FileState.SetLength(fileLength); //set stream to original length and remove padding
         }
 
         /// <summary>
         /// Saves the file, which was provided to the constructor.
         /// </summary>
-        /// <param name="dirPath"></param>
-        /// <param name="fileName"></param>
-        /// <param name="fileExtension"></param>
+        /// <param name="dirPath">Path of the directory the file will be saved to</param>
+        /// <param name="fileName">File name, without extension (null == name of the original file)</param>
+        /// <param name="fileExtension">File extension (null == encrypted extension [.secf] or original extension of decrypted file)</param>
         public void Save(string dirPath = "", string fileName = null, string fileExtension = null)
         {
             if (fileName == null)
@@ -150,6 +159,41 @@ namespace DataEncrypter.IO
             var fstream = new FileStream($@"{dirPath}{fileName}{fileExtension}", FileMode.Create);
             FileState.CopyTo(fstream);
             fstream.Close();
+        }
+
+        /// <summary>
+        /// Updates the key for en-/decryption.
+        /// </summary>
+        /// <param name="key">Key for en-/decryption</param>
+        public void UpdateKey(string key)
+        {
+            _cryptMethod.UpdateKey(ToByte(key));
+        }
+
+        /// <summary>
+        /// Changes the file, which can be modified by this instance.
+        /// </summary>
+        /// <param name="filePath">Path to target file</param>
+        public void UpdateFile(string filePath)
+        {
+            _fileStream?.Close();
+            _filePath = filePath;
+            _fileStream = new FileStream(filePath, FileMode.Open);
+        }
+
+        /// <summary>
+        /// Checks if the current key is able to decrypt the file.
+        /// </summary>
+        /// <returns>Boolean, which indicates if the key is valid.</returns>
+        public bool ValidateKeyForDecryption()
+        {
+            byte[] validation = new byte[_decryptionValidation.Length];
+            _fileStream.Position = _cryptType.Length + _secureHeaderSize - _decryptionValidation.Length;
+            _fileStream.Read(validation, 0, validation.Length);
+
+            _cryptMethod.Decrypt(ref validation, 0);
+
+            return ToString(validation) == _decryptionValidation;
         }
 
         /// <summary>
@@ -174,10 +218,36 @@ namespace DataEncrypter.IO
         }
 
         /// <summary>
+        /// Checks if given file is a SecureFile.
+        /// </summary>
+        /// <param name="filePath">File path to target file</param>
+        /// <returns>Boolean, which validates if its a .secf</returns>
+        public static bool IsSecureFile(string filePath)
+        {
+            var fs = new FileStream(filePath, FileMode.Open);
+            byte[] secf = new byte[_secureFileType.Length];
+            fs.Read(secf, 0, secf.Length);
+            fs.Close();
+
+            return ToString(secf) == _secureFileType;
+        }
+
+        public static CryptMethod GetCryptMethod(string filePath)
+        {
+            var fs = new FileStream(filePath, FileMode.Open);
+            byte[] crypt = new byte[3];
+            fs.Position = _secureFileType.Length;
+            fs.Read(crypt, 0, crypt.Length);
+            fs.Close();
+
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
         /// Converts a string to a byte array.
         /// </summary>
         /// <param name="str">String to be converted</param>
-        private byte[] ToByte(string str)
+        private static byte[] ToByte(string str)
         {
             byte[] bytes = new byte[str.Length];
             for (int i = 0; i < str.Length; i++)
@@ -192,12 +262,12 @@ namespace DataEncrypter.IO
         /// Converts a byte array to a string.
         /// </summary>
         /// <param name="str">Bytes to be converted</param>
-        private string ToString(byte[] bytes)
+        private static string ToString(byte[] bytes, int startIndex = 0)
         {
             string str = "";
-            foreach (var b in bytes)
+            for (int i = startIndex; i < bytes.Length; i++)
             {
-                str += (char)b;
+                str += (char)bytes[i];
             }
 
             return str;
@@ -208,7 +278,7 @@ namespace DataEncrypter.IO
         /// </summary>
         /// <param name="str">String to be converted</param>
         /// <param name="length">Length of the array</param>
-        private byte[] ToFixSizedByte(string str, int length)
+        private static byte[] ToFixSizedByte(string str, int length)
         {
             byte[] bytes = new byte[length];
 
@@ -227,7 +297,7 @@ namespace DataEncrypter.IO
         /// <param name="bytes">Bytes to be converted</param>
         /// <param name="startIndex"></param>
         /// <returns></returns>
-        private string FromFixSizedByte(byte[] bytes, int startIndex)
+        private static string FromFixSizedByte(byte[] bytes, int startIndex)
         {
             string str = "";
             for (int i = startIndex; i < bytes.Length; i++)
@@ -243,6 +313,8 @@ namespace DataEncrypter.IO
             }
 
             return str;
-        }  
+        }
+
+
     }
 }
