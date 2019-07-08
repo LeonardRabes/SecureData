@@ -25,14 +25,15 @@ namespace DataEncrypter.CryptMethods
         /// Encrypts data with the Advanced Encryption Standard.
         /// </summary>
         /// <param name="plaintext">Plaintext, which is encrypted in place, length must be a multible of 16</param>
-        public void Encrypt(ref byte[] plaintext)
+        /// <param name="startIndex">Index to start the process from.</param>
+        public void Encrypt(ref byte[] plaintext, int startIndex)
         {
-            if (plaintext.Length % 16 != 0)
+            if ((plaintext.Length - startIndex) % 16 != 0)
             {
                 throw new Exception("Incorrect Length: Length must be a multible of 16!");
             }
 
-            for (int index = 0; index < plaintext.Length; index+=16)
+            for (int index = startIndex; index < plaintext.Length; index+=16)
             {
                 //initial round
                 AddRoundKey(ref plaintext, index, ExpandedKeys[0]);
@@ -57,7 +58,8 @@ namespace DataEncrypter.CryptMethods
         /// Decrypts data with the Advanced Encryption Standard.
         /// </summary>
         /// <param name="plaintext">Cyphertext, which is decrypted in place, length must be a multible of 16</param>
-        public void Decrypt(ref byte[] cyphertext)
+        /// <param name="startIndex">Index to start the process from.</param>
+        public void Decrypt(ref byte[] cyphertext, int startIndex)
         {
             if (cyphertext.Length % 16 != 0)
             {

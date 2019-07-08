@@ -71,19 +71,19 @@ namespace DataEncrypter.IO
             secureHeader.AddRange(ToFixSizedByte(Path.GetExtension(_filePath), 16)); //orig file extension | 16bytes
 
             byte[] sh = secureHeader.ToArray();
-            _cryptMethod.Encrypt(ref sh);
+            _cryptMethod.Encrypt(ref sh, 0);
             writer.Write(sh); //write encrypted secure header to stream
 
             //encryption of file
             while (_fileStream.Length - _fileStream.Position > 1)
             {
-                int maxLength = 1_048_576; //int.MaxValue / 2048 => roughly 1mb
+                int chunkSize = 1_048_576; //int.MaxValue / 2048 => roughly 1mb
 
-                byte[] state = reader.ReadBytes((int)Math.Min(_fileStream.Length - _fileStream.Position, maxLength)); //read chunks from file or the entire file if file < 1mb
+                byte[] state = reader.ReadBytes((int)Math.Min(_fileStream.Length - _fileStream.Position, chunkSize)); //read chunks from file or the entire file if file < 1mb
  
                 _cryptMethod.Padding(ref state); //add padding to have no incomplete blocks
                 
-                _cryptMethod.Encrypt(ref state);
+                _cryptMethod.Encrypt(ref state, 0);
 
                 writer.Write(state);
             }
@@ -108,20 +108,20 @@ namespace DataEncrypter.IO
 
             //secure header | 64bytes
             byte[] secureHeader = reader.ReadBytes(64);
-            _cryptMethod.Decrypt(ref secureHeader);
+            _cryptMethod.Decrypt(ref secureHeader, 0);
 
-            long fileLength = BitConverter.ToInt64(secureHeader, 0); //read length of original file | 8bytes
+            long fileLength = BitConverter.ToInt64(secureHeader, 0);   //read length of original file | 8bytes
             _fileName = FromFixSizedByte(secureHeader, 8);             //name of original file | 40bytes
             _fileExtension = FromFixSizedByte(secureHeader, 48);       //file extension of original file | 16bytes
 
             //decryption of file
             while (_fileStream.Length - _fileStream.Position > 1)
             {
-                int maxLength = 1_048_576; //int.MaxValue / 2048 => roughly 1mb
+                int chunkSize = 1_048_576; //int.MaxValue / 2048 => roughly 1mb
 
-                byte[] state = reader.ReadBytes((int)Math.Min(_fileStream.Length - _fileStream.Position, maxLength));
+                byte[] state = reader.ReadBytes((int)Math.Min(_fileStream.Length - _fileStream.Position, chunkSize)); //read chunks from file or the entire file if file < 1mb
 
-                _cryptMethod.Decrypt(ref state);
+                _cryptMethod.Decrypt(ref state, 0);
 
                 writer.Write(state);
                 writer.Flush();

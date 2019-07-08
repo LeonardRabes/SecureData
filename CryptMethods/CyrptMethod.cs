@@ -17,13 +17,15 @@ namespace DataEncrypter.CryptMethods
         /// Encrypts data with a encryption algorithm.
         /// </summary>
         /// <param name="plaintext">Plaintext, which is encrypted in place.</param>
-        void Encrypt(ref byte[] plaintext);
+        /// <param name="startIndex">Index to start the process from.</param>
+        void Encrypt(ref byte[] plaintext, int startIndex);
 
         /// <summary>
         /// Decrypts data with a decryption algorithm.
         /// </summary>
         /// <param name="cyphertex">Cyphertex, which is decrypted in place.</param>
-        void Decrypt(ref byte[] cyphertex);
+        /// <param name="startIndex">Index to start the process from.</param>
+        void Decrypt(ref byte[] cyphertex, int startIndex);
 
         /// <summary>
         /// Padds data to fit into an encryption algorithm.
