@@ -1,16 +1,35 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
+using System.Diagnostics;
 using System.IO;
 using DataEncrypter.CryptMethods;
 
 namespace DataEncrypter.IO
 {
+    public class ChunkEventArgs : EventArgs
+    {
+        public enum ProcessType
+        {
+            Encryption,
+            Decryption
+        }
+        public int CompletedChunks { get; set; }
+        public int TotalChunks { get; set; }
+        public TimeSpan ElapsedTime { get; set; }
+        public ProcessType Type { get; set; }
+    }
+
     /// <summary>
     /// Provides functionality to handle files for encryption and decryption.
     /// </summary>
     public class SecureFile : IDisposable
     {
+        public delegate void ChunkUpdateEventHandler(object sender, ChunkEventArgs e);
+        public delegate void ProcessCompletedEventHandler(object sender, ChunkEventArgs e);
+
+        public event ChunkUpdateEventHandler ChunkUpdate;
+        public event ProcessCompletedEventHandler ProcessCompleted;
+
         public FileStream FileState { get; internal set; }
 
         private ICryptMethod _cryptMethod;
@@ -80,6 +99,10 @@ namespace DataEncrypter.IO
             _cryptMethod.Encrypt(ref sh, 0);
             writer.Write(sh); //write encrypted secure header to stream
 
+            //timer
+            var stopWatch = new Stopwatch();
+            stopWatch.Start();
+
             //encryption of file
             while (_fileStream.Length - _fileStream.Position > 1)
             {
@@ -90,7 +113,12 @@ namespace DataEncrypter.IO
                 _cryptMethod.Encrypt(ref state, 0);
 
                 writer.Write(state);
+
+                OnChunkUpdate(_fileStream.Position, _fileStream.Length, stopWatch.Elapsed, ChunkEventArgs.ProcessType.Encryption);
             }
+
+            stopWatch.Stop();
+            OnProcessCompleted(_fileStream.Length, stopWatch.Elapsed, ChunkEventArgs.ProcessType.Encryption);
         }
 
         /// <summary>
@@ -125,6 +153,10 @@ namespace DataEncrypter.IO
                 throw new Exception("Incorrect Key!");
             }
 
+            //timer
+            var stopWatch = new Stopwatch();
+            stopWatch.Start();
+
             //decryption of file
             while (_fileStream.Length - _fileStream.Position > 1)
             {
@@ -133,9 +165,13 @@ namespace DataEncrypter.IO
                 _cryptMethod.Decrypt(ref state, 0);
 
                 writer.Write(state);
-                writer.Flush();
+
+                OnChunkUpdate(_fileStream.Position, _fileStream.Length, stopWatch.Elapsed, ChunkEventArgs.ProcessType.Decryption);
             }
             FileState.SetLength(fileLength); //set stream to original length and remove padding
+
+            stopWatch.Stop();
+            OnProcessCompleted(_fileStream.Length, stopWatch.Elapsed, ChunkEventArgs.ProcessType.Decryption);
         }
 
         /// <summary>
@@ -215,6 +251,28 @@ namespace DataEncrypter.IO
             FileState.Close();
             _fileStream.Close();
             File.Delete(name);
+        }
+
+        protected virtual void OnChunkUpdate(long streamPosition, long streamLength, TimeSpan elapsedTime, ChunkEventArgs.ProcessType type)
+        {
+            var args = new ChunkEventArgs();
+            args.CompletedChunks = (int)(streamPosition / _chunkSize);
+            args.TotalChunks = (int)(streamLength / _chunkSize);
+            args.ElapsedTime = elapsedTime;
+            args.Type = type;
+
+            ChunkUpdate?.Invoke(this, args);
+        }
+
+        protected virtual void OnProcessCompleted(long streamLength, TimeSpan elapsedTime, ChunkEventArgs.ProcessType type)
+        {
+            var args = new ChunkEventArgs();
+            args.CompletedChunks = (int)(streamLength / _chunkSize);
+            args.TotalChunks = args.CompletedChunks;
+            args.ElapsedTime = elapsedTime;
+            args.Type = type;
+
+            ProcessCompleted?.Invoke(this, args);
         }
 
         /// <summary>
@@ -314,7 +372,5 @@ namespace DataEncrypter.IO
 
             return str;
         }
-
-
     }
 }
