@@ -13,9 +13,22 @@ namespace DataEncrypter.IO
             Encryption,
             Decryption
         }
+
+        /// <summary>
+        /// Amount of completed chunks.
+        /// </summary>
         public int CompletedChunks { get; set; }
+        /// <summary>
+        /// Amount of total chunks.
+        /// </summary>
         public int TotalChunks { get; set; }
+        /// <summary>
+        /// Elapsed time since the process has been started.
+        /// </summary>
         public TimeSpan ElapsedTime { get; set; }
+        /// <summary>
+        /// Type of process.
+        /// </summary>
         public ProcessType Type { get; set; }
     }
 
@@ -27,7 +40,13 @@ namespace DataEncrypter.IO
         public delegate void ChunkUpdateEventHandler(object sender, ChunkEventArgs e);
         public delegate void ProcessCompletedEventHandler(object sender, ChunkEventArgs e);
 
+        /// <summary>
+        /// Fires, when a chunk has been completed.
+        /// </summary>
         public event ChunkUpdateEventHandler ChunkUpdate;
+        /// <summary>
+        /// Fires, when a process has been completed.
+        /// </summary>
         public event ProcessCompletedEventHandler ProcessCompleted;
 
         public FileStream FileState { get; internal set; }
@@ -43,6 +62,24 @@ namespace DataEncrypter.IO
         private static int _secureHeaderSize = 80;
         private static int _chunkSize = 1_048_576; //int.MaxValue / 2048 => roughly 1mb
         private static string _decryptionValidation = "decryption_valid";
+
+        public SecureFile(string key, CryptMethod method = CryptMethod.AES)
+        {
+            switch (method)
+            {
+                case CryptMethod.AES:
+                    _cryptMethod = new AES(ToByte(key));
+                    _cryptType = ToByte(_secureFileType + "AES");
+                    break;
+                default:
+                    throw new NotImplementedException();
+            }
+
+            //create a temporary file to save data to
+            string stateTempName = $"$tmpSecFile{DateTime.Now.ToBinary().ToString()}";
+            FileState = new FileStream(stateTempName, FileMode.Create);
+            File.SetAttributes(stateTempName, FileAttributes.Hidden);
+        }
 
         /// <summary>
         /// Contructs basic data for file en-/decryption. This includes a temporary file to save data.
@@ -124,7 +161,7 @@ namespace DataEncrypter.IO
         /// <summary>
         /// Decrypts the file, which was provided to this instance.
         /// </summary>
-        public void Decyrpt()
+        public void Decrypt()
         {
             FileState.Position = 0;
             _fileStream.Position = 0;
@@ -180,21 +217,17 @@ namespace DataEncrypter.IO
         /// <param name="dirPath">Path of the directory the file will be saved to</param>
         /// <param name="fileName">File name, without extension (null == name of the original file)</param>
         /// <param name="fileExtension">File extension (null == encrypted extension [.secf] or original extension of decrypted file)</param>
-        public void Save(string dirPath = "", string fileName = null, string fileExtension = null)
+        public void Save(string filePath)
         {
-            if (fileName == null)
-            {
-                fileName = _fileName;
-            }
-            if (fileExtension == null)
-            {
-                fileExtension = _fileExtension;
-            }
-
             FileState.Position = 0;
-            var fstream = new FileStream($@"{dirPath}{fileName}{fileExtension}", FileMode.Create);
+            var fstream = new FileStream(filePath, FileMode.Create);
             FileState.CopyTo(fstream);
             fstream.Close();
+        }
+
+        public string SuggestSaveFileName()
+        {
+            return $@"{_fileName}{_fileExtension}";
         }
 
         /// <summary>
@@ -248,11 +281,14 @@ namespace DataEncrypter.IO
             }
 
             string name = FileState.Name;
-            FileState.Close();
-            _fileStream.Close();
+            FileState?.Close();
+            _fileStream?.Close();
             File.Delete(name);
         }
 
+        /// <summary>
+        /// Called, when a chunk was completed.
+        /// </summary>
         protected virtual void OnChunkUpdate(long streamPosition, long streamLength, TimeSpan elapsedTime, ChunkEventArgs.ProcessType type)
         {
             var args = new ChunkEventArgs();
@@ -264,6 +300,9 @@ namespace DataEncrypter.IO
             ChunkUpdate?.Invoke(this, args);
         }
 
+        /// <summary>
+        /// Called, when a process has been completed.
+        /// </summary>
         protected virtual void OnProcessCompleted(long streamLength, TimeSpan elapsedTime, ChunkEventArgs.ProcessType type)
         {
             var args = new ChunkEventArgs();
@@ -340,7 +379,7 @@ namespace DataEncrypter.IO
         {
             byte[] bytes = new byte[length];
 
-            for (int i = 0; i < str.Length; i++)
+            for (int i = 0; i < Math.Min(str.Length, length); i++)
             {
                 bytes[i] = (byte)str[i];
             }

@@ -30,33 +30,145 @@
         {
             this.chunkUpdate_progressBar = new System.Windows.Forms.ProgressBar();
             this.eta_label = new System.Windows.Forms.Label();
+            this.start_button = new System.Windows.Forms.Button();
+            this.selectFile_button = new System.Windows.Forms.Button();
+            this.key_textBox = new System.Windows.Forms.TextBox();
+            this.mode_comboBox = new System.Windows.Forms.ComboBox();
+            this.richTextBox1 = new System.Windows.Forms.RichTextBox();
+            this.fileName_label = new System.Windows.Forms.Label();
+            this.save_button = new System.Windows.Forms.Button();
+            this.keyStatus_label = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // chunkUpdate_progressBar
             // 
-            this.chunkUpdate_progressBar.Location = new System.Drawing.Point(71, 36);
+            this.chunkUpdate_progressBar.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.chunkUpdate_progressBar.Location = new System.Drawing.Point(12, 445);
             this.chunkUpdate_progressBar.Name = "chunkUpdate_progressBar";
-            this.chunkUpdate_progressBar.Size = new System.Drawing.Size(633, 23);
+            this.chunkUpdate_progressBar.Size = new System.Drawing.Size(292, 23);
             this.chunkUpdate_progressBar.TabIndex = 0;
             // 
             // eta_label
             // 
+            this.eta_label.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.eta_label.AutoSize = true;
-            this.eta_label.Location = new System.Drawing.Point(68, 62);
+            this.eta_label.Location = new System.Drawing.Point(12, 429);
             this.eta_label.Name = "eta_label";
             this.eta_label.Size = new System.Drawing.Size(34, 13);
             this.eta_label.TabIndex = 1;
             this.eta_label.Text = "ETA: ";
             // 
+            // start_button
+            // 
+            this.start_button.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.start_button.Enabled = false;
+            this.start_button.Location = new System.Drawing.Point(15, 403);
+            this.start_button.Name = "start_button";
+            this.start_button.Size = new System.Drawing.Size(75, 23);
+            this.start_button.TabIndex = 2;
+            this.start_button.Text = "Start";
+            this.start_button.UseVisualStyleBackColor = true;
+            this.start_button.Click += new System.EventHandler(this.StartProcess_button_Click);
+            // 
+            // selectFile_button
+            // 
+            this.selectFile_button.Location = new System.Drawing.Point(12, 12);
+            this.selectFile_button.Name = "selectFile_button";
+            this.selectFile_button.Size = new System.Drawing.Size(75, 23);
+            this.selectFile_button.TabIndex = 3;
+            this.selectFile_button.Text = "Select File";
+            this.selectFile_button.UseVisualStyleBackColor = true;
+            this.selectFile_button.Click += new System.EventHandler(this.SelectFile_button_Click);
+            // 
+            // key_textBox
+            // 
+            this.key_textBox.Enabled = false;
+            this.key_textBox.ForeColor = System.Drawing.SystemColors.GrayText;
+            this.key_textBox.Location = new System.Drawing.Point(12, 54);
+            this.key_textBox.Name = "key_textBox";
+            this.key_textBox.Size = new System.Drawing.Size(160, 20);
+            this.key_textBox.TabIndex = 4;
+            this.key_textBox.Text = "Key";
+            this.key_textBox.TextChanged += new System.EventHandler(this.Key_textBox_TextChanged);
+            this.key_textBox.Enter += new System.EventHandler(this.Key_textBox_Enter);
+            this.key_textBox.Leave += new System.EventHandler(this.Key_textBox_Leave);
+            // 
+            // mode_comboBox
+            // 
+            this.mode_comboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.mode_comboBox.FormattingEnabled = true;
+            this.mode_comboBox.ImeMode = System.Windows.Forms.ImeMode.NoControl;
+            this.mode_comboBox.Items.AddRange(new object[] {
+            "Encryption",
+            "Decryption"});
+            this.mode_comboBox.Location = new System.Drawing.Point(178, 54);
+            this.mode_comboBox.Name = "mode_comboBox";
+            this.mode_comboBox.Size = new System.Drawing.Size(121, 21);
+            this.mode_comboBox.TabIndex = 5;
+            this.mode_comboBox.SelectedIndexChanged += new System.EventHandler(this.Mode_comboBox_SelectedIndexChanged);
+            // 
+            // richTextBox1
+            // 
+            this.richTextBox1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.richTextBox1.Location = new System.Drawing.Point(12, 97);
+            this.richTextBox1.Name = "richTextBox1";
+            this.richTextBox1.ReadOnly = true;
+            this.richTextBox1.Size = new System.Drawing.Size(287, 282);
+            this.richTextBox1.TabIndex = 6;
+            this.richTextBox1.Text = "";
+            // 
+            // fileName_label
+            // 
+            this.fileName_label.AutoSize = true;
+            this.fileName_label.Location = new System.Drawing.Point(12, 38);
+            this.fileName_label.Name = "fileName_label";
+            this.fileName_label.Size = new System.Drawing.Size(80, 13);
+            this.fileName_label.TabIndex = 7;
+            this.fileName_label.Text = "No file selected";
+            // 
+            // save_button
+            // 
+            this.save_button.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.save_button.Enabled = false;
+            this.save_button.Location = new System.Drawing.Point(224, 403);
+            this.save_button.Name = "save_button";
+            this.save_button.Size = new System.Drawing.Size(75, 23);
+            this.save_button.TabIndex = 8;
+            this.save_button.Text = "Save";
+            this.save_button.UseVisualStyleBackColor = true;
+            this.save_button.Click += new System.EventHandler(this.Save_button_Click);
+            // 
+            // keyStatus_label
+            // 
+            this.keyStatus_label.AutoSize = true;
+            this.keyStatus_label.ForeColor = System.Drawing.Color.Red;
+            this.keyStatus_label.Location = new System.Drawing.Point(12, 77);
+            this.keyStatus_label.Name = "keyStatus_label";
+            this.keyStatus_label.Size = new System.Drawing.Size(76, 13);
+            this.keyStatus_label.TabIndex = 9;
+            this.keyStatus_label.Text = "Key is Missing!";
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(800, 450);
+            this.ClientSize = new System.Drawing.Size(316, 480);
+            this.Controls.Add(this.keyStatus_label);
+            this.Controls.Add(this.save_button);
+            this.Controls.Add(this.fileName_label);
+            this.Controls.Add(this.richTextBox1);
+            this.Controls.Add(this.mode_comboBox);
+            this.Controls.Add(this.key_textBox);
+            this.Controls.Add(this.selectFile_button);
+            this.Controls.Add(this.start_button);
             this.Controls.Add(this.eta_label);
             this.Controls.Add(this.chunkUpdate_progressBar);
             this.Name = "MainForm";
-            this.Text = "Form1";
+            this.Text = "DataEncrypter";
+            this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.MainForm_FormClosed);
             this.Load += new System.EventHandler(this.MainForm_Load);
             this.Shown += new System.EventHandler(this.MainForm_Shown);
             this.ResumeLayout(false);
@@ -68,6 +180,14 @@
 
         private System.Windows.Forms.ProgressBar chunkUpdate_progressBar;
         private System.Windows.Forms.Label eta_label;
+        private System.Windows.Forms.Button start_button;
+        private System.Windows.Forms.Button selectFile_button;
+        private System.Windows.Forms.TextBox key_textBox;
+        private System.Windows.Forms.ComboBox mode_comboBox;
+        private System.Windows.Forms.RichTextBox richTextBox1;
+        private System.Windows.Forms.Label fileName_label;
+        private System.Windows.Forms.Button save_button;
+        private System.Windows.Forms.Label keyStatus_label;
     }
 }
 
