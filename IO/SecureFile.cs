@@ -63,24 +63,6 @@ namespace DataEncrypter.IO
         private static int _chunkSize = 1_048_576; //int.MaxValue / 2048 => roughly 1mb
         private static string _decryptionValidation = "decryption_valid";
 
-        public SecureFile(string key, CryptMethod method = CryptMethod.AES)
-        {
-            switch (method)
-            {
-                case CryptMethod.AES:
-                    _cryptMethod = new AES(ToByte(key));
-                    _cryptType = ToByte(_secureFileType + "AES");
-                    break;
-                default:
-                    throw new NotImplementedException();
-            }
-
-            //create a temporary file to save data to
-            string stateTempName = $"$tmpSecFile{DateTime.Now.ToBinary().ToString()}";
-            FileState = new FileStream(stateTempName, FileMode.Create);
-            File.SetAttributes(stateTempName, FileAttributes.Hidden);
-        }
-
         /// <summary>
         /// Contructs basic data for file en-/decryption. This includes a temporary file to save data.
         /// </summary>

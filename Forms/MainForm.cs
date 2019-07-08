@@ -28,9 +28,7 @@ namespace DataEncrypter
 
         private void MainForm_Load(object sender, EventArgs e)
         {
-            _secureFile = new SecureFile(_key);
-            _secureFile.ChunkUpdate += SecureFile_ChunkUpdate;
-            _secureFile.ProcessCompleted += SecureFile_ProcessCompleted;
+            
         }
 
         private void MainForm_Shown(object sender, EventArgs e)
@@ -89,25 +87,35 @@ namespace DataEncrypter
 
                 if (fileDialog.ShowDialog() == DialogResult.OK)
                 {
-                    //Get the path of specified file
-                    _filePath = fileDialog.FileName;
-                    fileName_label.Text = Path.GetFileName(_filePath);
-
-                    //check if its a secure file
-                    if (SecureFile.IsSecureFile(_filePath))
+                    if (_filePath != fileDialog.FileName)
                     {
-                        mode_comboBox.SelectedItem = mode_comboBox.Items[1];
-                        _isSecureFile = true;
-                    }
-                    else
-                    {
-                        mode_comboBox.SelectedItem = mode_comboBox.Items[0];
-                    }
+                        //Get the path of specified file
+                        _filePath = fileDialog.FileName;
+                        fileName_label.Text = Path.GetFileName(_filePath);
 
-                    //set file
-                    _secureFile?.UpdateFile(_filePath);
+                        //check if its a secure file
+                        if (SecureFile.IsSecureFile(_filePath))
+                        {
+                            mode_comboBox.SelectedItem = mode_comboBox.Items[1];
+                            _isSecureFile = true;
+                        }
+                        else
+                        {
+                            mode_comboBox.SelectedItem = mode_comboBox.Items[0];
+                        }
 
-                    key_textBox.Enabled = true;
+                        //set file
+                        _secureFile?.UpdateFile(_filePath);
+
+                        if (_secureFile == null)
+                        {
+                            _secureFile = new SecureFile(_filePath, _key);
+                            _secureFile.ChunkUpdate += SecureFile_ChunkUpdate;
+                            _secureFile.ProcessCompleted += SecureFile_ProcessCompleted;
+                        }
+
+                        key_textBox.Enabled = true;
+                    }   
                 }
             }
 
