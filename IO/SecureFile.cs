@@ -15,6 +15,10 @@ namespace DataEncrypter.IO
         }
 
         /// <summary>
+        /// Size of the chunk in bytes.
+        /// </summary>
+        public int ChunkSize { get; set; }
+        /// <summary>
         /// Amount of completed chunks.
         /// </summary>
         public int CompletedChunks { get; set; }
@@ -25,7 +29,11 @@ namespace DataEncrypter.IO
         /// <summary>
         /// Elapsed time since the process has been started.
         /// </summary>
-        public TimeSpan ElapsedTime { get; set; }
+        public TimeSpan TotalTime { get; set; }
+        /// <summary>
+        /// Time the chunk took for completion.
+        /// </summary>
+        public TimeSpan ChunkTime { get; set; }
         /// <summary>
         /// Type of process.
         /// </summary>
@@ -119,6 +127,7 @@ namespace DataEncrypter.IO
             writer.Write(sh); //write encrypted secure header to stream
 
             //timer
+            TimeSpan totalTime = new TimeSpan();
             var stopWatch = new Stopwatch();
             stopWatch.Start();
 
@@ -133,11 +142,14 @@ namespace DataEncrypter.IO
 
                 writer.Write(state);
 
-                OnChunkUpdate(_fileStream.Position, _fileStream.Length, stopWatch.Elapsed, ChunkEventArgs.ProcessType.Encryption);
+                //Events and Measurement
+                totalTime = totalTime.Add(stopWatch.Elapsed);
+                OnChunkUpdate(_fileStream.Position, _fileStream.Length, state.Length, totalTime, stopWatch.Elapsed, ChunkEventArgs.ProcessType.Decryption);
+                stopWatch.Restart();
             }
 
             stopWatch.Stop();
-            OnProcessCompleted(_fileStream.Length, stopWatch.Elapsed, ChunkEventArgs.ProcessType.Encryption);
+            OnProcessCompleted(_fileStream.Length, totalTime, ChunkEventArgs.ProcessType.Encryption);
         }
 
         /// <summary>
@@ -173,6 +185,7 @@ namespace DataEncrypter.IO
             }
 
             //timer
+            TimeSpan totalTime = new TimeSpan();
             var stopWatch = new Stopwatch();
             stopWatch.Start();
 
@@ -185,12 +198,15 @@ namespace DataEncrypter.IO
 
                 writer.Write(state);
 
-                OnChunkUpdate(_fileStream.Position, _fileStream.Length, stopWatch.Elapsed, ChunkEventArgs.ProcessType.Decryption);
+                //Events and Measurement
+                totalTime = totalTime.Add(stopWatch.Elapsed);
+                OnChunkUpdate(_fileStream.Position, _fileStream.Length, state.Length, totalTime, stopWatch.Elapsed, ChunkEventArgs.ProcessType.Decryption);
+                stopWatch.Restart();
             }
             FileState.SetLength(fileLength); //set stream to original length and remove padding
 
             stopWatch.Stop();
-            OnProcessCompleted(_fileStream.Length, stopWatch.Elapsed, ChunkEventArgs.ProcessType.Decryption);
+            OnProcessCompleted(_fileStream.Length, totalTime, ChunkEventArgs.ProcessType.Decryption);
         }
 
         /// <summary>
@@ -271,12 +287,14 @@ namespace DataEncrypter.IO
         /// <summary>
         /// Called, when a chunk was completed.
         /// </summary>
-        protected virtual void OnChunkUpdate(long streamPosition, long streamLength, TimeSpan elapsedTime, ChunkEventArgs.ProcessType type)
+        protected virtual void OnChunkUpdate(long streamPosition, long streamLength, int chunkSize, TimeSpan totalTime, TimeSpan chunkTime, ChunkEventArgs.ProcessType type)
         {
             var args = new ChunkEventArgs();
+            args.ChunkSize = chunkSize;
             args.CompletedChunks = (int)(streamPosition / _chunkSize);
-            args.TotalChunks = (int)(streamLength / _chunkSize);
-            args.ElapsedTime = elapsedTime;
+            args.TotalChunks = (int)(streamLength / _chunkSize + 1);
+            args.TotalTime = totalTime;
+            args.ChunkTime = chunkTime;
             args.Type = type;
 
             ChunkUpdate?.Invoke(this, args);
@@ -290,7 +308,7 @@ namespace DataEncrypter.IO
             var args = new ChunkEventArgs();
             args.CompletedChunks = (int)(streamLength / _chunkSize);
             args.TotalChunks = args.CompletedChunks;
-            args.ElapsedTime = elapsedTime;
+            args.TotalTime = elapsedTime;
             args.Type = type;
 
             ProcessCompleted?.Invoke(this, args);

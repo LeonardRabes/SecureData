@@ -33,6 +33,7 @@ namespace DataEncrypter
 
         private void MainForm_Shown(object sender, EventArgs e)
         {
+
         }
 
         private void SecureFile_ProcessCompleted(object sender, ChunkEventArgs e)
@@ -42,6 +43,7 @@ namespace DataEncrypter
                 _canBeSaved = true;
                 save_button.Enabled = true;
                 ChangeAllEnabled(true);
+                LogMessage($"{e.Type.ToString()} Successfully Completed in {e.TotalTime.ToString("c")}");
             }));
         }
 
@@ -50,9 +52,11 @@ namespace DataEncrypter
             this.Invoke(new MethodInvoker(delegate
             {
                 chunkUpdate_progressBar.Value = Convert.ToInt32(e.CompletedChunks / (float)e.TotalChunks * 100F);
-                double eta = e.ElapsedTime.TotalMilliseconds / e.CompletedChunks * (e.TotalChunks - e.CompletedChunks) / 1000;
+                double eta = e.TotalTime.TotalMilliseconds / e.CompletedChunks * (e.TotalChunks - e.CompletedChunks) / 1000;
                 eta_label.Text = $"ETA: {eta.ToString("0.0")} Seconds";
-                Refresh();
+
+                LogMessage($"ChunkCompleted[{e.CompletedChunks}/{e.TotalChunks}]:" +
+                    $" Size: {e.ChunkSize} bytes Time: {e.ChunkTime.TotalMilliseconds.ToString("0.0")}ms");
             }));
         }
 
@@ -208,11 +212,32 @@ namespace DataEncrypter
             }
         }
 
-        public void ChangeAllEnabled(bool enabled)
+        private void ChangeAllEnabled(bool enabled)
         {
             selectFile_button.Enabled = enabled;
             key_textBox.Enabled = enabled;
             mode_comboBox.Enabled = enabled;
+        }
+
+        private void LogMessage(string message)
+        {
+            int maxLines = 100;
+            int resetTo = 30;
+
+            if (log_textBox.Lines.Length >= maxLines)
+            {
+                string[] lines = new string[resetTo];
+                for (int i = maxLines - resetTo; i < log_textBox.Lines.Length; i++)
+                {
+                    lines[i - (maxLines - resetTo)] = log_textBox.Lines[i];
+                }
+
+                log_textBox.Lines = lines;
+            }
+
+            log_textBox.Text += message + "\n";
+            log_textBox.SelectionStart = log_textBox.Text.Length;
+            log_textBox.ScrollToCaret();
         }
     }
 }

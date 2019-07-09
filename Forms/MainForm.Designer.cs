@@ -34,7 +34,7 @@
             this.selectFile_button = new System.Windows.Forms.Button();
             this.key_textBox = new System.Windows.Forms.TextBox();
             this.mode_comboBox = new System.Windows.Forms.ComboBox();
-            this.richTextBox1 = new System.Windows.Forms.RichTextBox();
+            this.log_textBox = new System.Windows.Forms.RichTextBox();
             this.fileName_label = new System.Windows.Forms.Label();
             this.save_button = new System.Windows.Forms.Button();
             this.keyStatus_label = new System.Windows.Forms.Label();
@@ -46,7 +46,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.chunkUpdate_progressBar.Location = new System.Drawing.Point(12, 445);
             this.chunkUpdate_progressBar.Name = "chunkUpdate_progressBar";
-            this.chunkUpdate_progressBar.Size = new System.Drawing.Size(292, 23);
+            this.chunkUpdate_progressBar.Size = new System.Drawing.Size(369, 23);
             this.chunkUpdate_progressBar.TabIndex = 0;
             // 
             // eta_label
@@ -108,17 +108,17 @@
             this.mode_comboBox.TabIndex = 5;
             this.mode_comboBox.SelectedIndexChanged += new System.EventHandler(this.Mode_comboBox_SelectedIndexChanged);
             // 
-            // richTextBox1
+            // log_textBox
             // 
-            this.richTextBox1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            this.log_textBox.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.richTextBox1.Location = new System.Drawing.Point(12, 97);
-            this.richTextBox1.Name = "richTextBox1";
-            this.richTextBox1.ReadOnly = true;
-            this.richTextBox1.Size = new System.Drawing.Size(287, 282);
-            this.richTextBox1.TabIndex = 6;
-            this.richTextBox1.Text = "";
+            this.log_textBox.Location = new System.Drawing.Point(12, 97);
+            this.log_textBox.Name = "log_textBox";
+            this.log_textBox.ReadOnly = true;
+            this.log_textBox.Size = new System.Drawing.Size(364, 282);
+            this.log_textBox.TabIndex = 6;
+            this.log_textBox.Text = "";
             // 
             // fileName_label
             // 
@@ -133,7 +133,7 @@
             // 
             this.save_button.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.save_button.Enabled = false;
-            this.save_button.Location = new System.Drawing.Point(224, 403);
+            this.save_button.Location = new System.Drawing.Point(301, 403);
             this.save_button.Name = "save_button";
             this.save_button.Size = new System.Drawing.Size(75, 23);
             this.save_button.TabIndex = 8;
@@ -155,11 +155,11 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(316, 480);
+            this.ClientSize = new System.Drawing.Size(393, 480);
             this.Controls.Add(this.keyStatus_label);
             this.Controls.Add(this.save_button);
             this.Controls.Add(this.fileName_label);
-            this.Controls.Add(this.richTextBox1);
+            this.Controls.Add(this.log_textBox);
             this.Controls.Add(this.mode_comboBox);
             this.Controls.Add(this.key_textBox);
             this.Controls.Add(this.selectFile_button);
@@ -184,7 +184,7 @@
         private System.Windows.Forms.Button selectFile_button;
         private System.Windows.Forms.TextBox key_textBox;
         private System.Windows.Forms.ComboBox mode_comboBox;
-        private System.Windows.Forms.RichTextBox richTextBox1;
+        private System.Windows.Forms.RichTextBox log_textBox;
         private System.Windows.Forms.Label fileName_label;
         private System.Windows.Forms.Button save_button;
         private System.Windows.Forms.Label keyStatus_label;
