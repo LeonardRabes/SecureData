@@ -118,6 +118,7 @@ namespace DataEncrypter
                             _secureFile.ProcessCompleted += SecureFile_ProcessCompleted;
                         }
 
+                        LogMessage(CreateFileInfo(_filePath));
                         key_textBox.Enabled = true;
                     }   
                 }
@@ -238,6 +239,16 @@ namespace DataEncrypter
             log_textBox.Text += message + "\n";
             log_textBox.SelectionStart = log_textBox.Text.Length;
             log_textBox.ScrollToCaret();
+        }
+
+        private string CreateFileInfo(string filePath)
+        {
+            string info = "";
+
+            info += "Opened File: " + Path.GetFileName(filePath) + "\n";
+            info += "Total Size: " + new FileInfo(filePath).Length + " bytes";
+
+            return info;
         }
     }
 }

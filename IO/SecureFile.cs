@@ -291,8 +291,8 @@ namespace DataEncrypter.IO
         {
             var args = new ChunkEventArgs();
             args.ChunkSize = chunkSize;
-            args.CompletedChunks = (int)(streamPosition / _chunkSize);
-            args.TotalChunks = (int)(streamLength / _chunkSize + 1);
+            args.CompletedChunks = (int)(Math.Ceiling(streamPosition / (float)_chunkSize));
+            args.TotalChunks = (int)(Math.Ceiling(streamLength / (float)_chunkSize));
             args.TotalTime = totalTime;
             args.ChunkTime = chunkTime;
             args.Type = type;
@@ -306,7 +306,7 @@ namespace DataEncrypter.IO
         protected virtual void OnProcessCompleted(long streamLength, TimeSpan elapsedTime, ChunkEventArgs.ProcessType type)
         {
             var args = new ChunkEventArgs();
-            args.CompletedChunks = (int)(streamLength / _chunkSize);
+            args.CompletedChunks = (int)(Math.Ceiling(streamLength / (float)_chunkSize));
             args.TotalChunks = args.CompletedChunks;
             args.TotalTime = elapsedTime;
             args.Type = type;

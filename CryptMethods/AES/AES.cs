@@ -117,39 +117,7 @@ namespace DataEncrypter.CryptMethods
         /// <returns>Returns an array with 11 round keys</returns>
         private byte[][] KeyExpansion(byte[] initialKey)
         {
-            if (initialKey.Length < 16) //lengthen the key to correct length by repeating the key
-            {
-                byte[] longerKey = new byte[16];
-
-                int shortKeyCount = 0;
-                for (int i = 0; i < 16; i++)
-                {
-                    if (shortKeyCount >= initialKey.Length)
-                    {
-                        shortKeyCount = 0;
-                    }
-                    longerKey[i] = initialKey[shortKeyCount++];
-                }
-                initialKey = longerKey;
-            }
-            else if (initialKey.Length > 16) //shorten the key to correct length xor the longer bytes to begining bytes
-            {
-                byte[] shorterKey = new byte[16];
-
-                for (int i = 0; i < initialKey.Length; i++)
-                {
-                    if (i < 16)
-                    {
-                        shorterKey[i] = initialKey[i];
-                    }
-                    else
-                    {
-                        shorterKey[i - 16] ^= initialKey[i];
-                    }
-                }
-
-                initialKey = shorterKey;
-            }
+            initialKey = CastKey(initialKey, 16);
 
             //add init key
             byte[][] expKeys = new byte[11][];
@@ -162,6 +130,65 @@ namespace DataEncrypter.CryptMethods
             }
 
             return expKeys;
+        }
+
+        /// <summary>
+        /// Casts a key of any length to its desired length.
+        /// </summary>
+        /// <param name="initialKey">Initial Key</param>
+        /// <param name="length">Desired length of the output</param>
+        /// <returns>Returns the casted key</returns>
+        private byte[] CastKey(byte[] initialKey, int length)
+        {
+            if (initialKey.Length < length) //lengthen the key to correct length by repeating the key
+            {
+                byte[] longerKey = new byte[length];
+
+                int shortKeyCount = 0;
+                bool substituteBytes = false;
+
+                for (int i = 0; i < 16; i++)
+                {
+                    if (shortKeyCount >= initialKey.Length)
+                    {
+                        shortKeyCount = 0;
+                        substituteBytes = true;
+                    }
+
+                    if (!substituteBytes) //copy the key to its initial length
+                    {
+                        longerKey[i] = initialKey[shortKeyCount++];
+                    }
+                    else //all bytes over init length will be substituted
+                    {
+                        longerKey[i] = _sbox[initialKey[shortKeyCount++]];
+                    }
+                }
+
+                return longerKey;
+            }
+            else if (initialKey.Length > length) //shorten the key to correct length xor the longer bytes to begining bytes
+            {
+                byte[] shorterKey = new byte[length];
+
+                for (int i = 0; i < initialKey.Length; i++)
+                {
+                    if (i < length)
+                    {
+                        shorterKey[i] = initialKey[i];
+                    }
+                    else
+                    {
+                        shorterKey[i - length] ^= initialKey[i];
+                    }
+                }
+
+                return shorterKey;
+            }
+            else
+            {
+                return initialKey;
+            }
         }
 
         /// <summary>
