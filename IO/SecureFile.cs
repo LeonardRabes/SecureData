@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using DataEncrypter.CryptMethods;
+using DataEncrypter.Cyphers;
 
 namespace DataEncrypter.IO
 {
@@ -59,7 +59,7 @@ namespace DataEncrypter.IO
 
         public FileStream FileState { get; internal set; }
 
-        private ICryptMethod _cryptMethod;
+        private ICypher _cypher;
         private byte[] _cryptType;
         private string _filePath;
         private FileStream _fileStream;
@@ -75,14 +75,14 @@ namespace DataEncrypter.IO
         /// Contructs basic data for file en-/decryption. This includes a temporary file to save data.
         /// </summary>
         /// <param name="filePath">File path to the file, which will be en-/decrypted.</param>
-        /// <param name="key">The key for the CryptMethod</param>
+        /// <param name="key">The key for the Cypher</param>
         /// <param name="method">The method of en-/decryption</param>
-        public SecureFile(string filePath, string key, CryptMethod method = CryptMethod.AES)
+        public SecureFile(string filePath, string key, Cypher method = Cypher.AES)
         {
             switch (method)
             {
-                case CryptMethod.AES:
-                    _cryptMethod = new AES(ToByte(key));
+                case Cypher.AES:
+                    _cypher = new AES(ToByte(key));
                     _cryptType = ToByte(_secureFileType + "AES");
                     break;
                 default:
@@ -123,7 +123,7 @@ namespace DataEncrypter.IO
             secureHeader.AddRange(ToByte(_decryptionValidation));                    //validation string to determine if decryption is valid | 16bytes
 
             byte[] sh = secureHeader.ToArray();
-            _cryptMethod.Encrypt(ref sh, 0);
+            _cypher.Encrypt(ref sh, 0);
             writer.Write(sh); //write encrypted secure header to stream
 
             //timer
@@ -136,9 +136,9 @@ namespace DataEncrypter.IO
             {
                 byte[] state = reader.ReadBytes((int)Math.Min(_fileStream.Length - _fileStream.Position, _chunkSize)); //read chunks from file or the entire file if file < 1mb
  
-                _cryptMethod.Padding(ref state); //add padding to have no incomplete blocks
+                _cypher.Padding(ref state); //add padding to have no incomplete blocks
                 
-                _cryptMethod.Encrypt(ref state, 0);
+                _cypher.Encrypt(ref state, 0);
 
                 writer.Write(state);
 
@@ -172,7 +172,7 @@ namespace DataEncrypter.IO
 
             //secure header | 80bytes
             byte[] secureHeader = reader.ReadBytes(_secureHeaderSize);
-            _cryptMethod.Decrypt(ref secureHeader, 0);
+            _cypher.Decrypt(ref secureHeader, 0);
 
             long fileLength = BitConverter.ToInt64(secureHeader, 0);   //read length of original file | 8bytes
             _fileName = FromFixSizedByte(secureHeader, 8);             //name of original file | 40bytes
@@ -194,7 +194,7 @@ namespace DataEncrypter.IO
             {
                 byte[] state = reader.ReadBytes((int)Math.Min(_fileStream.Length - _fileStream.Position, _chunkSize)); //read chunks from file or the entire file if file < 1mb
 
-                _cryptMethod.Decrypt(ref state, 0);
+                _cypher.Decrypt(ref state, 0);
 
                 writer.Write(state);
 
@@ -234,7 +234,7 @@ namespace DataEncrypter.IO
         /// <param name="key">Key for en-/decryption</param>
         public void UpdateKey(string key)
         {
-            _cryptMethod.UpdateKey(ToByte(key));
+            _cypher.UpdateKey(ToByte(key));
         }
 
         /// <summary>
@@ -258,7 +258,7 @@ namespace DataEncrypter.IO
             _fileStream.Position = _cryptType.Length + _secureHeaderSize - _decryptionValidation.Length;
             _fileStream.Read(validation, 0, validation.Length);
 
-            _cryptMethod.Decrypt(ref validation, 0);
+            _cypher.Decrypt(ref validation, 0);
 
             return ToString(validation) == _decryptionValidation;
         }
@@ -329,7 +329,7 @@ namespace DataEncrypter.IO
             return ToString(secf) == _secureFileType;
         }
 
-        public static CryptMethod GetCryptMethod(string filePath)
+        public static Cypher GetCypher(string filePath)
         {
             var fs = new FileStream(filePath, FileMode.Open);
             byte[] crypt = new byte[3];

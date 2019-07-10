@@ -1,11 +1,11 @@
 ﻿using System;
 
-namespace DataEncrypter.CryptMethods
+namespace DataEncrypter.Cyphers
 {
     /// <summary>
     /// Provides encryption and decryption with the Advanced Encryption Standard
     /// </summary>
-    public partial class AES : ICryptMethod
+    public partial class AES : ICypher
     {
         /// <summary>
         /// Expanded keyset for encryption and decryption.

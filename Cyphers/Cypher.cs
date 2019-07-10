@@ -4,14 +4,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DataEncrypter.CryptMethods
+namespace DataEncrypter.Cyphers
 {
-    public enum CryptMethod
+    public enum Cypher
     {
         AES
     }
 
-    public interface ICryptMethod
+    public interface ICypher
     {
         /// <summary>
         /// Encrypts data with a encryption algorithm.
