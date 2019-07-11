@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DataEncrypter.CryptMethods
+namespace DataEncrypter.Cyphers
 {
     public partial class AES
     {
