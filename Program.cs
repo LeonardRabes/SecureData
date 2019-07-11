@@ -14,6 +14,8 @@ namespace DataEncrypter
         [STAThread]
         static void Main()
         {
+            bool test = IO.SecureDelete.DeleteFile("soundfile - Kopie.mp3", 4);
+
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new MainForm());
