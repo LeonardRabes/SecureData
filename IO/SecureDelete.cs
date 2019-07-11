@@ -18,7 +18,7 @@ namespace DataEncrypter.IO
             }
 
             ProcessStartInfo startInfo = new ProcessStartInfo();
-            startInfo.CreateNoWindow = false;
+            startInfo.CreateNoWindow = true;
             startInfo.UseShellExecute = false;
             startInfo.FileName = "sdelete.exe";
             startInfo.WindowStyle = ProcessWindowStyle.Hidden;
@@ -34,6 +34,11 @@ namespace DataEncrypter.IO
                 string output = deleteProc.StandardOutput.ReadToEnd();
                 return output.Contains("Files deleted: 1");
             }
+        }
+
+        public static bool IsPossible()
+        {
+            return File.Exists("sdelete.exe");
         }
     }
 }

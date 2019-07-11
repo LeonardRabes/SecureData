@@ -36,8 +36,8 @@
             this.mode_comboBox = new System.Windows.Forms.ComboBox();
             this.log_textBox = new System.Windows.Forms.RichTextBox();
             this.fileName_label = new System.Windows.Forms.Label();
-            this.save_button = new System.Windows.Forms.Button();
             this.keyStatus_label = new System.Windows.Forms.Label();
+            this.deleteOrig_checkBox = new System.Windows.Forms.CheckBox();
             this.SuspendLayout();
             // 
             // chunkUpdate_progressBar
@@ -129,18 +129,6 @@
             this.fileName_label.TabIndex = 7;
             this.fileName_label.Text = "No file selected";
             // 
-            // save_button
-            // 
-            this.save_button.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.save_button.Enabled = false;
-            this.save_button.Location = new System.Drawing.Point(301, 403);
-            this.save_button.Name = "save_button";
-            this.save_button.Size = new System.Drawing.Size(75, 23);
-            this.save_button.TabIndex = 8;
-            this.save_button.Text = "Save";
-            this.save_button.UseVisualStyleBackColor = true;
-            this.save_button.Click += new System.EventHandler(this.Save_button_Click);
-            // 
             // keyStatus_label
             // 
             this.keyStatus_label.AutoSize = true;
@@ -151,13 +139,23 @@
             this.keyStatus_label.TabIndex = 9;
             this.keyStatus_label.Text = "Key is Missing!";
             // 
+            // deleteOrig_checkBox
+            // 
+            this.deleteOrig_checkBox.AutoSize = true;
+            this.deleteOrig_checkBox.Location = new System.Drawing.Point(96, 407);
+            this.deleteOrig_checkBox.Name = "deleteOrig_checkBox";
+            this.deleteOrig_checkBox.Size = new System.Drawing.Size(95, 17);
+            this.deleteOrig_checkBox.TabIndex = 10;
+            this.deleteOrig_checkBox.Text = "Delete Original";
+            this.deleteOrig_checkBox.UseVisualStyleBackColor = true;
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(393, 480);
+            this.Controls.Add(this.deleteOrig_checkBox);
             this.Controls.Add(this.keyStatus_label);
-            this.Controls.Add(this.save_button);
             this.Controls.Add(this.fileName_label);
             this.Controls.Add(this.log_textBox);
             this.Controls.Add(this.mode_comboBox);
@@ -168,9 +166,7 @@
             this.Controls.Add(this.chunkUpdate_progressBar);
             this.Name = "MainForm";
             this.Text = "DataEncrypter";
-            this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.MainForm_FormClosed);
             this.Load += new System.EventHandler(this.MainForm_Load);
-            this.Shown += new System.EventHandler(this.MainForm_Shown);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -186,8 +182,8 @@
         private System.Windows.Forms.ComboBox mode_comboBox;
         private System.Windows.Forms.RichTextBox log_textBox;
         private System.Windows.Forms.Label fileName_label;
-        private System.Windows.Forms.Button save_button;
         private System.Windows.Forms.Label keyStatus_label;
+        private System.Windows.Forms.CheckBox deleteOrig_checkBox;
     }
 }
 

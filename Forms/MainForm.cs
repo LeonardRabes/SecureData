@@ -18,7 +18,6 @@ namespace DataEncrypter
         private SecureFile _secureFile;
         private string _filePath = "";
         private bool _isSecureFile = false;
-        private bool _canBeSaved = false;
         private string _key = "Key";
 
         public MainForm()
@@ -28,20 +27,27 @@ namespace DataEncrypter
 
         private void MainForm_Load(object sender, EventArgs e)
         {
-            
-        }
+            _secureFile = new SecureFile(_key);
+            _secureFile.ChunkUpdate += SecureFile_ChunkUpdate;
+            _secureFile.ProcessCompleted += SecureFile_ProcessCompleted;
 
-        private void MainForm_Shown(object sender, EventArgs e)
-        {
-
+            if (!SecureDelete.IsPossible())
+            {
+                MessageBox.Show("Secure Deletion of Files not possible. SDelete wasn't found in this Directory. Please download it and save it inside the DataEncrypter directory.", 
+                    "No Secure Deletion", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+            }
         }
 
         private void SecureFile_ProcessCompleted(object sender, ChunkEventArgs e)
         {
             this.Invoke(new MethodInvoker(delegate
             {
-                _canBeSaved = true;
-                save_button.Enabled = true;
+                if (deleteOrig_checkBox.Checked)
+                {
+                    start_button.Enabled = false;
+                    _filePath = "";
+                }
+
                 ChangeAllEnabled(true);
                 LogMessage($"{e.Type.ToString()} Successfully Completed in {e.TotalTime.ToString("c")}");
             }));
@@ -67,17 +73,12 @@ namespace DataEncrypter
 
             if (mode_comboBox.SelectedIndex == 0)
             {
-                Task.Run(() => _secureFile.Encrypt());
+                Task.Run(() => _secureFile.Encrypt(_filePath, Path.GetDirectoryName(_filePath), deleteOrig_checkBox.Checked));
             }
             else if (mode_comboBox.SelectedIndex == 1)
             {
-                Task.Run(() => _secureFile.Decrypt());
-            }     
-        }
-
-        private void MainForm_FormClosed(object sender, FormClosedEventArgs e)
-        {
-            _secureFile?.Dispose();
+                Task.Run(() => _secureFile.Decrypt(_filePath, Path.GetDirectoryName(_filePath), deleteOrig_checkBox.Checked));
+            }
         }
 
         private void SelectFile_button_Click(object sender, EventArgs e)
@@ -106,16 +107,6 @@ namespace DataEncrypter
                         else
                         {
                             mode_comboBox.SelectedItem = mode_comboBox.Items[0];
-                        }
-
-                        //set file
-                        _secureFile?.UpdateFile(_filePath);
-
-                        if (_secureFile == null)
-                        {
-                            _secureFile = new SecureFile(_filePath, _key);
-                            _secureFile.ChunkUpdate += SecureFile_ChunkUpdate;
-                            _secureFile.ProcessCompleted += SecureFile_ProcessCompleted;
                         }
 
                         LogMessage(CreateFileInfo(_filePath));
@@ -150,26 +141,6 @@ namespace DataEncrypter
             }
         }
 
-        private void Save_button_Click(object sender, EventArgs e)
-        {
-            using (var fileDialog = new SaveFileDialog())
-            {
-                string suggestion = _secureFile.SuggestSaveFileName();
-                string extensionFilter = $"{Path.GetExtension(suggestion)} | *{Path.GetExtension(suggestion)}";
-
-                fileDialog.InitialDirectory = "";
-                fileDialog.Filter = extensionFilter + "| All files (*.*)|*.*";
-                fileDialog.FilterIndex = 0;
-                fileDialog.RestoreDirectory = true;
-                fileDialog.FileName = Path.GetFileNameWithoutExtension(suggestion);
-
-                if (fileDialog.ShowDialog() == DialogResult.OK)
-                {
-                    _secureFile.Save(fileDialog.FileName);
-                }
-            }
-        }
-
         private void Mode_comboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
             CheckKey();
@@ -184,7 +155,7 @@ namespace DataEncrypter
 
                 if (mode_comboBox.SelectedIndex == 1)
                 {
-                    if (_secureFile.ValidateKeyForDecryption())
+                    if (_secureFile.ValidateKeyForDecryption(_filePath))
                     {
                         keyStatus_label.Text = "Key is Correct!";
                         keyStatus_label.ForeColor = Color.Green;
@@ -218,6 +189,7 @@ namespace DataEncrypter
             selectFile_button.Enabled = enabled;
             key_textBox.Enabled = enabled;
             mode_comboBox.Enabled = enabled;
+            deleteOrig_checkBox.Enabled = enabled;
         }
 
         private void LogMessage(string message)

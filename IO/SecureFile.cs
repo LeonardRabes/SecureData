@@ -43,7 +43,7 @@ namespace DataEncrypter.IO
     /// <summary>
     /// Provides functionality to handle files for encryption and decryption.
     /// </summary>
-    public class SecureFile : IDisposable
+    public class SecureFile
     {
         public delegate void ChunkUpdateEventHandler(object sender, ChunkEventArgs e);
         public delegate void ProcessCompletedEventHandler(object sender, ChunkEventArgs e);
@@ -57,16 +57,11 @@ namespace DataEncrypter.IO
         /// </summary>
         public event ProcessCompletedEventHandler ProcessCompleted;
 
-        public FileStream FileState { get; internal set; }
-
         private ICypher _cypher;
         private byte[] _cryptType;
-        private string _filePath;
-        private FileStream _fileStream;
-        private string _fileName;
-        private string _fileExtension;
 
         private static string _secureFileType = "SECF"; //abreviation: SECureFile
+        private static string _secureFileExtension = ".secf";
         private static int _secureHeaderSize = 80;
         private static int _chunkSize = 1_048_576; //int.MaxValue / 2048 => roughly 1mb
         private static string _decryptionValidation = "decryption_valid";
@@ -77,7 +72,7 @@ namespace DataEncrypter.IO
         /// <param name="filePath">File path to the file, which will be en-/decrypted.</param>
         /// <param name="key">The key for the Cypher</param>
         /// <param name="method">The method of en-/decryption</param>
-        public SecureFile(string filePath, string key, Cypher method = Cypher.AES)
+        public SecureFile(string key, Cypher method = Cypher.AES)
         {
             switch (method)
             {
@@ -88,39 +83,34 @@ namespace DataEncrypter.IO
                 default:
                     throw new NotImplementedException();
             }
-
-            //create a temporary file to save data to
-            string stateTempName = $"$tmpSecFile{DateTime.Now.ToBinary().ToString()}";
-            FileState = new FileStream(stateTempName, FileMode.Create);
-            File.SetAttributes(stateTempName, FileAttributes.Hidden);
-
-            //open target file
-            UpdateFile(filePath);
         }
 
         /// <summary>
         /// Encrypts the file, which was provided to this instance.
         /// </summary>
-        public void Encrypt()
+        /// <param name="filePath">Path to the file</param>
+        /// <param name="saveDir">Directory, where the encrypted file is saved</param>
+        /// <param name="deleteOriginal">Determines if the file of filePath is deleted</param>
+        public void Encrypt(string filePath, string saveDir = "", bool deleteOriginal = false)
         {
-            FileState.Position = 0;
-            _fileStream.Position = 0;
+            FileStream targetFile = OpenTargetFile(filePath);
+            FileStream tempFile = CreateTempFile();
 
-            _fileName = Path.GetFileNameWithoutExtension(_filePath);
-            _fileExtension = ".secf"; //new file extension after encryption
+            string fileName = Path.GetFileNameWithoutExtension(filePath);
+            string fileExtension = Path.GetExtension(filePath);
 
-            var writer = new BinaryWriter(FileState);
-            var reader = new BinaryReader(_fileStream);
+            var writer = new BinaryWriter(tempFile);
+            var reader = new BinaryReader(targetFile);
 
             //write unsecure header
             writer.Write(_cryptType);                                                //file type | 7bytes
 
             //secure header | 80 bytes
             List<byte> secureHeader = new List<byte>();
-            secureHeader.AddRange(BitConverter.GetBytes(_fileStream.Length));        //length of orig file | 8bytes
-            secureHeader.AddRange(ToFixSizedByte(_fileName, 40));                    //orig name of file | 40bytes
-            secureHeader.AddRange(ToFixSizedByte(Path.GetExtension(_filePath), 16)); //orig file extension | 16bytes
-            secureHeader.AddRange(ToByte(_decryptionValidation));                    //validation string to determine if decryption is valid | 16bytes
+            secureHeader.AddRange(BitConverter.GetBytes(targetFile.Length));        //length of orig file | 8bytes
+            secureHeader.AddRange(ToFixSizedByte(fileName, 40));                    //orig name of file | 40bytes
+            secureHeader.AddRange(ToFixSizedByte(fileExtension, 16));               //orig file extension | 16bytes
+            secureHeader.AddRange(ToByte(_decryptionValidation));                   //validation string to determine if decryption is valid | 16bytes
 
             byte[] sh = secureHeader.ToArray();
             _cypher.Encrypt(ref sh, 0);
@@ -132,9 +122,9 @@ namespace DataEncrypter.IO
             stopWatch.Start();
 
             //encryption of file
-            while (_fileStream.Length - _fileStream.Position > 1)
+            while (targetFile.Length - targetFile.Position > 1)
             {
-                byte[] state = reader.ReadBytes((int)Math.Min(_fileStream.Length - _fileStream.Position, _chunkSize)); //read chunks from file or the entire file if file < 1mb
+                byte[] state = reader.ReadBytes((int)Math.Min(targetFile.Length - targetFile.Position, _chunkSize)); //read chunks from file or the entire file if file < 1mb
  
                 _cypher.Padding(ref state); //add padding to have no incomplete blocks
                 
@@ -144,24 +134,31 @@ namespace DataEncrypter.IO
 
                 //Events and Measurement
                 totalTime = totalTime.Add(stopWatch.Elapsed);
-                OnChunkUpdate(_fileStream.Position, _fileStream.Length, state.Length, totalTime, stopWatch.Elapsed, ChunkEventArgs.ProcessType.Decryption);
+                OnChunkUpdate(targetFile.Position, targetFile.Length, state.Length, totalTime, stopWatch.Elapsed, ChunkEventArgs.ProcessType.Decryption);
                 stopWatch.Restart();
             }
 
             stopWatch.Stop();
-            OnProcessCompleted(_fileStream.Length, totalTime, ChunkEventArgs.ProcessType.Encryption);
+            OnProcessCompleted(targetFile.Length, totalTime, ChunkEventArgs.ProcessType.Encryption);
+
+            Save(Path.Combine(saveDir, fileName + _secureFileExtension), tempFile);
+            DeleteTempFile(tempFile);
+            CloseTargetFile(targetFile, deleteOriginal);
         }
 
         /// <summary>
         /// Decrypts the file, which was provided to this instance.
         /// </summary>
-        public void Decrypt()
+        /// <param name="filePath">Path to the file</param>
+        /// <param name="saveDir">Directory, where the decrypted file is saved</param>
+        /// <param name="deleteOriginal">Determines if the file of filePath is deleted</param>
+        public void Decrypt(string filePath, string saveDir = "", bool deleteOriginal = false)
         {
-            FileState.Position = 0;
-            _fileStream.Position = 0;
+            FileStream targetFile = OpenTargetFile(filePath);
+            FileStream tempFile = CreateTempFile();
 
-            var writer = new BinaryWriter(FileState);
-            var reader = new BinaryReader(_fileStream);
+            var writer = new BinaryWriter(tempFile);
+            var reader = new BinaryReader(targetFile);
 
             //check file type
             if (reader.ReadInt32() != BitConverter.ToInt32(ToByte(_secureFileType), 0))
@@ -175,8 +172,8 @@ namespace DataEncrypter.IO
             _cypher.Decrypt(ref secureHeader, 0);
 
             long fileLength = BitConverter.ToInt64(secureHeader, 0);   //read length of original file | 8bytes
-            _fileName = FromFixSizedByte(secureHeader, 8);             //name of original file | 40bytes
-            _fileExtension = FromFixSizedByte(secureHeader, 48);       //file extension of original file | 16bytes
+            string fileName = FromFixSizedByte(secureHeader, 8);       //name of original file | 40bytes
+            string fileExtension = FromFixSizedByte(secureHeader, 48); //file extension of original file | 16bytes
             string validation = ToString(secureHeader, 64);            //read validation | 16bytes
 
             if (validation != _decryptionValidation) //check if key is correct
@@ -190,9 +187,9 @@ namespace DataEncrypter.IO
             stopWatch.Start();
 
             //decryption of file
-            while (_fileStream.Length - _fileStream.Position > 1)
+            while (targetFile.Length - targetFile.Position > 1)
             {
-                byte[] state = reader.ReadBytes((int)Math.Min(_fileStream.Length - _fileStream.Position, _chunkSize)); //read chunks from file or the entire file if file < 1mb
+                byte[] state = reader.ReadBytes((int)Math.Min(targetFile.Length - targetFile.Position, _chunkSize)); //read chunks from file or the entire file if file < 1mb
 
                 _cypher.Decrypt(ref state, 0);
 
@@ -200,33 +197,19 @@ namespace DataEncrypter.IO
 
                 //Events and Measurement
                 totalTime = totalTime.Add(stopWatch.Elapsed);
-                OnChunkUpdate(_fileStream.Position, _fileStream.Length, state.Length, totalTime, stopWatch.Elapsed, ChunkEventArgs.ProcessType.Decryption);
+                OnChunkUpdate(targetFile.Position, targetFile.Length, state.Length, totalTime, stopWatch.Elapsed, ChunkEventArgs.ProcessType.Decryption);
                 stopWatch.Restart();
             }
-            FileState.SetLength(fileLength); //set stream to original length and remove padding
+            tempFile.SetLength(fileLength); //set stream to original length and remove padding
 
             stopWatch.Stop();
-            OnProcessCompleted(_fileStream.Length, totalTime, ChunkEventArgs.ProcessType.Decryption);
+            OnProcessCompleted(targetFile.Length, totalTime, ChunkEventArgs.ProcessType.Decryption);
+
+            Save(Path.Combine(saveDir, fileName + fileExtension), tempFile);
+            DeleteTempFile(tempFile);
+            CloseTargetFile(targetFile, deleteOriginal);
         }
 
-        /// <summary>
-        /// Saves the file, which was provided to the constructor.
-        /// </summary>
-        /// <param name="dirPath">Path of the directory the file will be saved to</param>
-        /// <param name="fileName">File name, without extension (null == name of the original file)</param>
-        /// <param name="fileExtension">File extension (null == encrypted extension [.secf] or original extension of decrypted file)</param>
-        public void Save(string filePath)
-        {
-            FileState.Position = 0;
-            var fstream = new FileStream(filePath, FileMode.Create);
-            FileState.CopyTo(fstream);
-            fstream.Close();
-        }
-
-        public string SuggestSaveFileName()
-        {
-            return $@"{_fileName}{_fileExtension}";
-        }
 
         /// <summary>
         /// Updates the key for en-/decryption.
@@ -238,25 +221,17 @@ namespace DataEncrypter.IO
         }
 
         /// <summary>
-        /// Changes the file, which can be modified by this instance.
-        /// </summary>
-        /// <param name="filePath">Path to target file</param>
-        public void UpdateFile(string filePath)
-        {
-            _fileStream?.Close();
-            _filePath = filePath;
-            _fileStream = new FileStream(filePath, FileMode.Open);
-        }
-
-        /// <summary>
         /// Checks if the current key is able to decrypt the file.
         /// </summary>
         /// <returns>Boolean, which indicates if the key is valid.</returns>
-        public bool ValidateKeyForDecryption()
+        public bool ValidateKeyForDecryption(string filePath)
         {
+            var fs = new FileStream(filePath, FileMode.Open);
             byte[] validation = new byte[_decryptionValidation.Length];
-            _fileStream.Position = _cryptType.Length + _secureHeaderSize - _decryptionValidation.Length;
-            _fileStream.Read(validation, 0, validation.Length);
+
+            fs.Position = _cryptType.Length + _secureHeaderSize - _decryptionValidation.Length;
+            fs.Read(validation, 0, validation.Length);
+            fs.Close();
 
             _cypher.Decrypt(ref validation, 0);
 
@@ -264,24 +239,94 @@ namespace DataEncrypter.IO
         }
 
         /// <summary>
-        /// Disposes this instance and removes any created temporary files.
+        /// Opens a file
         /// </summary>
-        public void Dispose()
+        /// <param name="filePath">Path to file</param>
+        private FileStream OpenTargetFile(string filePath)
         {
-            //Dispose temp file by overwriting with 0
-            FileState.Position = 0;
-            byte[] bytes = new byte[16384];
-            long amount = (FileState.Length / bytes.Length + 1);
+            var workFile = new FileStream(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+            return workFile;
+        }
 
-            for (long i = 0; i < amount; i++)
+        /// <summary>
+        /// Closes a FileStream
+        /// </summary>
+        /// <param name="targetFile">FileStream to be closed</param>
+        /// <param name="delete">Delete file afterwards</param>
+        private void CloseTargetFile(FileStream targetFile, bool delete = false)
+        {
+            string path = targetFile.Name;
+            targetFile.Close();
+
+            if (delete)
             {
-                FileState.Write(bytes, 0, bytes.Length);
+                bool deleted = SecureDelete.DeleteFile(path);
+                if (!deleted)
+                {
+                    File.Delete(path);
+                }
             }
+        }
 
-            string name = FileState.Name;
-            FileState?.Close();
-            _fileStream?.Close();
-            File.Delete(name);
+        /// <summary>
+        /// Creates a temporary file for saving data to.
+        /// </summary>
+        private FileStream CreateTempFile()
+        {
+            //create a temporary file to save data to
+            string stateTempName = $"$tmpSecFile{DateTime.Now.ToBinary().ToString()}";
+            var tempFile = new FileStream(stateTempName, FileMode.Create, FileAccess.ReadWrite, FileShare.None);
+            File.SetAttributes(stateTempName, FileAttributes.Hidden);
+
+            return tempFile;
+        }
+
+        /// <summary>
+        /// Deletes the temporary file
+        /// </summary>
+        /// <param name="tmpFile">FileStream to be deleted</param>
+        private void DeleteTempFile(FileStream tmpFile)
+        {
+            if (SecureDelete.IsPossible())
+            {
+                string name = tmpFile.Name;
+                tmpFile.Close();
+
+                bool deleted = SecureDelete.DeleteFile(name, 5); //try secure deletion
+                if (!deleted)
+                {
+                    File.Delete(name);
+                }
+            }
+            else //if sdelete is not available
+            {
+                //Dispose temp file by overwriting with 0
+                tmpFile.Position = 0;
+                byte[] bytes = new byte[16384];
+                long amount = (tmpFile.Length / bytes.Length + 1);
+
+                for (long i = 0; i < amount; i++)
+                {
+                    tmpFile.Write(bytes, 0, bytes.Length);
+                }
+
+                string name = tmpFile.Name;
+                tmpFile.Close();
+                File.Delete(name);
+            }
+        }
+
+        /// <summary>
+        /// Saves the file, which was provided to the constructor.
+        /// </summary>
+        /// <param name="filePath">Path to save a file to</param>
+        /// <param name="tmpFile">FileStream to copy from</param>
+        private void Save(string filePath, FileStream tmpFile)
+        {
+            tmpFile.Position = 0;
+            var fstream = new FileStream(filePath, FileMode.Create);
+            tmpFile.CopyTo(fstream);
+            fstream.Close();
         }
 
         /// <summary>
