@@ -93,15 +93,16 @@ namespace DataEncrypter.IO
         /// <param name="deleteOriginal">Determines if the file of filePath is deleted</param>
         public void Encrypt(string filePath, string saveDir = "", bool deleteOriginal = false)
         {
-            FileStream targetFile = OpenTargetFile(filePath);
-            FileStream tempFile = CreateTempFile();
-
             string fileName = Path.GetFileNameWithoutExtension(filePath);
             string fileExtension = Path.GetExtension(filePath);
 
-            var writer = new BinaryWriter(tempFile);
+            FileStream targetFile = OpenTargetFile(filePath);
+            FileStream saveFile = CreateSaveFile(Path.Combine(saveDir, fileName + _secureFileExtension));
+
+            var writer = new BinaryWriter(saveFile);
             var reader = new BinaryReader(targetFile);
 
+            #region write header
             //write unsecure header
             writer.Write(_cryptType);                                                //file type | 7bytes
 
@@ -115,7 +116,9 @@ namespace DataEncrypter.IO
             byte[] sh = secureHeader.ToArray();
             _cypher.Encrypt(ref sh, 0);
             writer.Write(sh); //write encrypted secure header to stream
+            #endregion
 
+            #region encryption
             //timer
             TimeSpan totalTime = new TimeSpan();
             var stopWatch = new Stopwatch();
@@ -140,10 +143,10 @@ namespace DataEncrypter.IO
 
             stopWatch.Stop();
             OnProcessCompleted(targetFile.Length, totalTime, ChunkEventArgs.ProcessType.Encryption);
+            #endregion
 
-            Save(Path.Combine(saveDir, fileName + _secureFileExtension), tempFile);
-            DeleteTempFile(tempFile);
             CloseTargetFile(targetFile, deleteOriginal);
+            saveFile.Close();
         }
 
         /// <summary>
@@ -155,11 +158,9 @@ namespace DataEncrypter.IO
         public void Decrypt(string filePath, string saveDir = "", bool deleteOriginal = false)
         {
             FileStream targetFile = OpenTargetFile(filePath);
-            FileStream tempFile = CreateTempFile();
-
-            var writer = new BinaryWriter(tempFile);
             var reader = new BinaryReader(targetFile);
 
+            #region read secure header
             //check file type
             if (reader.ReadInt32() != BitConverter.ToInt32(ToByte(_secureFileType), 0))
             {
@@ -180,7 +181,12 @@ namespace DataEncrypter.IO
             {
                 throw new Exception("Incorrect Key!");
             }
+            #endregion
 
+            FileStream saveFile = CreateSaveFile(Path.Combine(saveDir, fileName + fileExtension));
+            var writer = new BinaryWriter(saveFile);
+
+            #region decryption
             //timer
             TimeSpan totalTime = new TimeSpan();
             var stopWatch = new Stopwatch();
@@ -200,14 +206,14 @@ namespace DataEncrypter.IO
                 OnChunkUpdate(targetFile.Position, targetFile.Length, state.Length, totalTime, stopWatch.Elapsed, ChunkEventArgs.ProcessType.Decryption);
                 stopWatch.Restart();
             }
-            tempFile.SetLength(fileLength); //set stream to original length and remove padding
+            saveFile.SetLength(fileLength); //set stream to original length and remove padding
 
             stopWatch.Stop();
             OnProcessCompleted(targetFile.Length, totalTime, ChunkEventArgs.ProcessType.Decryption);
+            #endregion
 
-            Save(Path.Combine(saveDir, fileName + fileExtension), tempFile);
-            DeleteTempFile(tempFile);
             CloseTargetFile(targetFile, deleteOriginal);
+            saveFile.Close();
         }
 
 
@@ -271,62 +277,11 @@ namespace DataEncrypter.IO
         /// <summary>
         /// Creates a temporary file for saving data to.
         /// </summary>
-        private FileStream CreateTempFile()
+        private FileStream CreateSaveFile(string filePath)
         {
             //create a temporary file to save data to
-            string stateTempName = $"$tmpSecFile{DateTime.Now.ToBinary().ToString()}";
-            var tempFile = new FileStream(stateTempName, FileMode.Create, FileAccess.ReadWrite, FileShare.None);
-            File.SetAttributes(stateTempName, FileAttributes.Hidden);
-
+            var tempFile = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None);
             return tempFile;
-        }
-
-        /// <summary>
-        /// Deletes the temporary file
-        /// </summary>
-        /// <param name="tmpFile">FileStream to be deleted</param>
-        private void DeleteTempFile(FileStream tmpFile)
-        {
-            if (SecureDelete.IsPossible())
-            {
-                string name = tmpFile.Name;
-                tmpFile.Close();
-
-                bool deleted = SecureDelete.DeleteFile(name, 5); //try secure deletion
-                if (!deleted)
-                {
-                    File.Delete(name);
-                }
-            }
-            else //if sdelete is not available
-            {
-                //Dispose temp file by overwriting with 0
-                tmpFile.Position = 0;
-                byte[] bytes = new byte[16384];
-                long amount = (tmpFile.Length / bytes.Length + 1);
-
-                for (long i = 0; i < amount; i++)
-                {
-                    tmpFile.Write(bytes, 0, bytes.Length);
-                }
-
-                string name = tmpFile.Name;
-                tmpFile.Close();
-                File.Delete(name);
-            }
-        }
-
-        /// <summary>
-        /// Saves the file, which was provided to the constructor.
-        /// </summary>
-        /// <param name="filePath">Path to save a file to</param>
-        /// <param name="tmpFile">FileStream to copy from</param>
-        private void Save(string filePath, FileStream tmpFile)
-        {
-            tmpFile.Position = 0;
-            var fstream = new FileStream(filePath, FileMode.Create);
-            tmpFile.CopyTo(fstream);
-            fstream.Close();
         }
 
         /// <summary>
