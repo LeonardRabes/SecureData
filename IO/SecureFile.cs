@@ -77,8 +77,8 @@ namespace DataEncrypter.IO
             switch (method)
             {
                 case Cypher.AES:
-                    _cypher = new AES(ToByte(key));
-                    _cryptType = ToByte(_secureFileType + "AES");
+                    _cypher = new AES(Misc.StringToBytes(key));
+                    _cryptType = Misc.StringToBytes(_secureFileType + "AES");
                     break;
                 default:
                     throw new NotImplementedException();
@@ -109,9 +109,9 @@ namespace DataEncrypter.IO
             //secure header | 80 bytes
             List<byte> secureHeader = new List<byte>();
             secureHeader.AddRange(BitConverter.GetBytes(targetFile.Length));        //length of orig file | 8bytes
-            secureHeader.AddRange(ToFixSizedByte(fileName, 40));                    //orig name of file | 40bytes
-            secureHeader.AddRange(ToFixSizedByte(fileExtension, 16));               //orig file extension | 16bytes
-            secureHeader.AddRange(ToByte(_decryptionValidation));                   //validation string to determine if decryption is valid | 16bytes
+            secureHeader.AddRange(Misc.StringToFixSizedByte(fileName, 40));                    //orig name of file | 40bytes
+            secureHeader.AddRange(Misc.StringToFixSizedByte(fileExtension, 16));               //orig file extension | 16bytes
+            secureHeader.AddRange(Misc.StringToBytes(_decryptionValidation));                   //validation string to determine if decryption is valid | 16bytes
 
             byte[] sh = secureHeader.ToArray();
             _cypher.Encrypt(ref sh, 0);
@@ -162,20 +162,20 @@ namespace DataEncrypter.IO
 
             #region read secure header
             //check file type
-            if (reader.ReadInt32() != BitConverter.ToInt32(ToByte(_secureFileType), 0))
+            if (reader.ReadInt32() != BitConverter.ToInt32(Misc.StringToBytes(_secureFileType), 0))
             {
                 throw new Exception("Not SECF FileType!");
             }
-            string encryptionMethod = ToString(reader.ReadBytes(3)); //read encryption method
+            string encryptionMethod = Misc.BytesToString(reader.ReadBytes(3)); //read encryption method
 
             //secure header | 80bytes
             byte[] secureHeader = reader.ReadBytes(_secureHeaderSize);
             _cypher.Decrypt(ref secureHeader, 0);
 
-            long fileLength = BitConverter.ToInt64(secureHeader, 0);   //read length of original file | 8bytes
-            string fileName = FromFixSizedByte(secureHeader, 8);       //name of original file | 40bytes
-            string fileExtension = FromFixSizedByte(secureHeader, 48); //file extension of original file | 16bytes
-            string validation = ToString(secureHeader, 64);            //read validation | 16bytes
+            long fileLength = BitConverter.ToInt64(secureHeader, 0);              //read length of original file | 8bytes
+            string fileName = Misc.StringFromFixSizedByte(secureHeader, 8);       //name of original file | 40bytes
+            string fileExtension = Misc.StringFromFixSizedByte(secureHeader, 48); //file extension of original file | 16bytes
+            string validation = Misc.BytesToString(secureHeader, 64);             //read validation | 16bytes
 
             if (validation != _decryptionValidation) //check if key is correct
             {
@@ -223,7 +223,7 @@ namespace DataEncrypter.IO
         /// <param name="key">Key for en-/decryption</param>
         public void UpdateKey(string key)
         {
-            _cypher.UpdateKey(ToByte(key));
+            _cypher.UpdateKey(Misc.StringToBytes(key));
         }
 
         /// <summary>
@@ -241,7 +241,7 @@ namespace DataEncrypter.IO
 
             _cypher.Decrypt(ref validation, 0);
 
-            return ToString(validation) == _decryptionValidation;
+            return Misc.BytesToString(validation) == _decryptionValidation;
         }
 
         /// <summary>
@@ -326,7 +326,7 @@ namespace DataEncrypter.IO
             fs.Read(secf, 0, secf.Length);
             fs.Close();
 
-            return ToString(secf) == _secureFileType;
+            return Misc.BytesToString(secf) == _secureFileType;
         }
 
         public static Cypher GetCypher(string filePath)
@@ -338,78 +338,6 @@ namespace DataEncrypter.IO
             fs.Close();
 
             throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Converts a string to a byte array.
-        /// </summary>
-        /// <param name="str">String to be converted</param>
-        private static byte[] ToByte(string str)
-        {
-            byte[] bytes = new byte[str.Length];
-            for (int i = 0; i < str.Length; i++)
-            {
-                bytes[i] = (byte)str[i];
-            }
-
-            return bytes;
-        }
-
-        /// <summary>
-        /// Converts a byte array to a string.
-        /// </summary>
-        /// <param name="str">Bytes to be converted</param>
-        private static string ToString(byte[] bytes, int startIndex = 0)
-        {
-            string str = "";
-            for (int i = startIndex; i < bytes.Length; i++)
-            {
-                str += (char)bytes[i];
-            }
-
-            return str;
-        }
-
-        /// <summary>
-        /// Converts a string to a byte array with fixed size. Is null-terminated
-        /// </summary>
-        /// <param name="str">String to be converted</param>
-        /// <param name="length">Length of the array</param>
-        private static byte[] ToFixSizedByte(string str, int length)
-        {
-            byte[] bytes = new byte[length];
-
-            for (int i = 0; i < Math.Min(str.Length, length); i++)
-            {
-                bytes[i] = (byte)str[i];
-            }
-            bytes[length - 1] = 0;
-
-            return bytes;
-        }
-
-        /// <summary>
-        /// Converts a byte array with fixed size to a string. Is null-terminated
-        /// </summary>
-        /// <param name="bytes">Bytes to be converted</param>
-        /// <param name="startIndex"></param>
-        /// <returns></returns>
-        private static string FromFixSizedByte(byte[] bytes, int startIndex)
-        {
-            string str = "";
-            for (int i = startIndex; i < bytes.Length; i++)
-            {
-                if (bytes[i] != 0)
-                {
-                    str += (char)bytes[i];
-                }
-                else
-                {
-                    break;
-                }
-            }
-
-            return str;
         }
     }
 }
