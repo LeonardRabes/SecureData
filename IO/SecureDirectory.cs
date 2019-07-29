@@ -17,24 +17,26 @@ namespace DataEncrypter.IO
 
         private static char _rootDirIdentifier = 'S';
 
-        public SecureDirectory(string key, Cypher method = Cypher.AES)
+        public SecureDirectory()
         {
-            switch (method)
-            {
-                case Cypher.AES:
-                    _cypher = new AES(BinaryTools.StringToBytes(key));
-                    break;
-                default:
-                    throw new NotImplementedException();
-            }
+
         }
 
-        public void Create(string filePath, string key)
+        public void Create(string filePath, string key, Cypher method = Cypher.AES)
         {
             var rng = new RNGCryptoServiceProvider();
             _userKey = BinaryTools.StringToBytes(key);
             _internalKey = new byte[16];
             rng.GetBytes(_internalKey);
+
+            switch (method)
+            {
+                case Cypher.AES:
+                    _cypher = new AES();
+                    break;
+                default:
+                    throw new NotImplementedException();
+            }
 
             Tree = new SDir
             {

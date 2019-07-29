@@ -8,26 +8,15 @@ namespace DataEncrypter.Cyphers
     public partial class AES : ICypher
     {
         /// <summary>
-        /// Expanded keyset for encryption and decryption.
-        /// </summary>
-        public byte[][] ExpandedKeys {get; internal set;}
-
-        /// <summary>
-        /// Creates a object for encryption and decryption with the Advanced Encryption Standard.
-        /// </summary>
-        /// <param name="key">Cypher to en-/decrypt</param>
-        public AES(byte[] key)
-        {
-            ExpandedKeys = KeyExpansion(key);
-        }
-
-        /// <summary>
         /// Encrypts data with the Advanced Encryption Standard.
         /// </summary>
         /// <param name="plaintext">Plaintext, which is encrypted in place, length must be a multible of 16</param>
         /// <param name="startIndex">Index to start the process from.</param>
-        public void Encrypt(ref byte[] plaintext, int startIndex)
+        /// <param name="key">Key to encrypt</param>
+        public void Encrypt(ref byte[] plaintext, int startIndex, byte[] key)
         {
+            byte[][] expandedKeys = KeyExpansion(key);
+
             if ((plaintext.Length - startIndex) % 16 != 0)
             {
                 throw new Exception("Incorrect Length: Length must be a multible of 16!");
@@ -36,7 +25,7 @@ namespace DataEncrypter.Cyphers
             for (int index = startIndex; index < plaintext.Length; index+=16)
             {
                 //initial round
-                AddRoundKey(ref plaintext, index, ExpandedKeys[0]);
+                AddRoundKey(ref plaintext, index, expandedKeys[0]);
 
                 //encryption rounds
                 for (int round = 1; round < 10; round++)
@@ -44,13 +33,13 @@ namespace DataEncrypter.Cyphers
                     SubByte(ref plaintext, index);
                     ShiftRows(ref plaintext, index);
                     MixColumns(ref plaintext, index);
-                    AddRoundKey(ref plaintext, index, ExpandedKeys[round]);
+                    AddRoundKey(ref plaintext, index, expandedKeys[round]);
                 }
 
                 //last round
                 SubByte(ref plaintext, index);
                 ShiftRows(ref plaintext, index);
-                AddRoundKey(ref plaintext, index, ExpandedKeys[10]);
+                AddRoundKey(ref plaintext, index, expandedKeys[10]);
             }
         }
 
@@ -59,8 +48,11 @@ namespace DataEncrypter.Cyphers
         /// </summary>
         /// <param name="plaintext">Cyphertext, which is decrypted in place, length must be a multible of 16</param>
         /// <param name="startIndex">Index to start the process from.</param>
-        public void Decrypt(ref byte[] cyphertext, int startIndex)
+        /// <param name="key">Key to decrypt</param>
+        public void Decrypt(ref byte[] cyphertext, int startIndex, byte[] key)
         {
+            byte[][] expandedKeys = KeyExpansion(key);
+
             if (cyphertext.Length % 16 != 0)
             {
                 throw new Exception("Incorrect Length: Length must be a multible of 16!");
@@ -69,21 +61,21 @@ namespace DataEncrypter.Cyphers
             for (int index = 0; index < cyphertext.Length; index += 16)
             {
                 //initial round
-                AddRoundKey(ref cyphertext, index, ExpandedKeys[10]);
+                AddRoundKey(ref cyphertext, index, expandedKeys[10]);
                 InvShiftRows(ref cyphertext, index);
                 InvSubByte(ref cyphertext, index);
 
                 //decryption rounds
                 for (int round = 9; round > 0; round--)
                 {
-                    AddRoundKey(ref cyphertext, index, ExpandedKeys[round]);
+                    AddRoundKey(ref cyphertext, index, expandedKeys[round]);
                     InvMixColumns(ref cyphertext, index);
                     InvShiftRows(ref cyphertext, index);
                     InvSubByte(ref cyphertext, index);
                 }
 
                 //last round
-                AddRoundKey(ref cyphertext, index, ExpandedKeys[0]);
+                AddRoundKey(ref cyphertext, index, expandedKeys[0]);
             }
         }
 
@@ -99,15 +91,6 @@ namespace DataEncrypter.Cyphers
             {
                 Array.Resize(ref state, 16 * (int)Math.Ceiling(l / 16F));
             }
-        }
-
-        /// <summary>
-        /// Updates the key by restarting the key expansion.
-        /// </summary>
-        /// <param name="key">Key for en-/decryption</param>
-        public void UpdateKey(byte[] key)
-        {
-            ExpandedKeys = KeyExpansion(key);
         }
 
         /// <summary>

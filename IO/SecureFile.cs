@@ -72,12 +72,12 @@ namespace DataEncrypter.IO
         /// <param name="filePath">File path to the file, which will be en-/decrypted.</param>
         /// <param name="key">The key for the Cypher</param>
         /// <param name="method">The method of en-/decryption</param>
-        public SecureFile(string key, Cypher method = Cypher.AES)
+        public SecureFile(Cypher method = Cypher.AES)
         {
             switch (method)
             {
                 case Cypher.AES:
-                    _cypher = new AES(BinaryTools.StringToBytes(key));
+                    _cypher = new AES();
                     _cryptType = BinaryTools.StringToBytes(_secureFileType + "AES");
                     break;
                 default:
@@ -89,9 +89,10 @@ namespace DataEncrypter.IO
         /// Encrypts the file, which was provided to this instance.
         /// </summary>
         /// <param name="filePath">Path to the file</param>
+        /// <param name="key">Key to encrypt</param>
         /// <param name="saveDir">Directory, where the encrypted file is saved</param>
         /// <param name="deleteOriginal">Determines if the file of filePath is deleted</param>
-        public void Encrypt(string filePath, string saveDir = "", bool deleteOriginal = false)
+        public void Encrypt(string filePath, string key, string saveDir = "", bool deleteOriginal = false)
         {
             string fileName = Path.GetFileNameWithoutExtension(filePath);
             string fileExtension = Path.GetExtension(filePath);
@@ -114,7 +115,7 @@ namespace DataEncrypter.IO
             secureHeader.AddRange(BinaryTools.StringToBytes(_decryptionValidation));                   //validation string to determine if decryption is valid | 16bytes
 
             byte[] sh = secureHeader.ToArray();
-            _cypher.Encrypt(ref sh, 0);
+            _cypher.Encrypt(ref sh, 0, BinaryTools.StringToBytes(key));
             writer.Write(sh); //write encrypted secure header to stream
             #endregion
 
@@ -131,7 +132,7 @@ namespace DataEncrypter.IO
  
                 _cypher.Padding(ref state); //add padding to have no incomplete blocks
                 
-                _cypher.Encrypt(ref state, 0);
+                _cypher.Encrypt(ref state, 0, BinaryTools.StringToBytes(key));
 
                 writer.Write(state);
 
@@ -153,9 +154,10 @@ namespace DataEncrypter.IO
         /// Decrypts the file, which was provided to this instance.
         /// </summary>
         /// <param name="filePath">Path to the file</param>
+        /// <param name="key">Key to encrypt</param>
         /// <param name="saveDir">Directory, where the decrypted file is saved</param>
         /// <param name="deleteOriginal">Determines if the file of filePath is deleted</param>
-        public void Decrypt(string filePath, string saveDir = "", bool deleteOriginal = false)
+        public void Decrypt(string filePath, string key, string saveDir = "", bool deleteOriginal = false)
         {
             FileStream targetFile = OpenTargetFile(filePath);
             var reader = new BinaryReader(targetFile);
@@ -170,7 +172,7 @@ namespace DataEncrypter.IO
 
             //secure header | 80bytes
             byte[] secureHeader = reader.ReadBytes(_secureHeaderSize);
-            _cypher.Decrypt(ref secureHeader, 0);
+            _cypher.Decrypt(ref secureHeader, 0, BinaryTools.StringToBytes(key));
 
             long fileLength = BitConverter.ToInt64(secureHeader, 0);              //read length of original file | 8bytes
             string fileName = BinaryTools.StringFromFixSizedByte(secureHeader, 8);       //name of original file | 40bytes
@@ -197,7 +199,7 @@ namespace DataEncrypter.IO
             {
                 byte[] state = reader.ReadBytes((int)Math.Min(targetFile.Length - targetFile.Position, _chunkSize)); //read chunks from file or the entire file if file < 1mb
 
-                _cypher.Decrypt(ref state, 0);
+                _cypher.Decrypt(ref state, 0, BinaryTools.StringToBytes(key));
 
                 writer.Write(state);
 
@@ -216,21 +218,11 @@ namespace DataEncrypter.IO
             saveFile.Close();
         }
 
-
-        /// <summary>
-        /// Updates the key for en-/decryption.
-        /// </summary>
-        /// <param name="key">Key for en-/decryption</param>
-        public void UpdateKey(string key)
-        {
-            _cypher.UpdateKey(BinaryTools.StringToBytes(key));
-        }
-
         /// <summary>
         /// Checks if the current key is able to decrypt the file.
         /// </summary>
         /// <returns>Boolean, which indicates if the key is valid.</returns>
-        public bool ValidateKeyForDecryption(string filePath)
+        public bool ValidateKeyForDecryption(string filePath, string key)
         {
             var fs = new FileStream(filePath, FileMode.Open);
             byte[] validation = new byte[_decryptionValidation.Length];
@@ -239,7 +231,7 @@ namespace DataEncrypter.IO
             fs.Read(validation, 0, validation.Length);
             fs.Close();
 
-            _cypher.Decrypt(ref validation, 0);
+            _cypher.Decrypt(ref validation, 0, BinaryTools.StringToBytes(key));
 
             return BinaryTools.BytesToString(validation) == _decryptionValidation;
         }

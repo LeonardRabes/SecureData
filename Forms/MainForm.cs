@@ -11,7 +11,7 @@ using System.IO;
 using DataEncrypter.Cyphers;
 using DataEncrypter.IO;
 
-namespace DataEncrypter
+namespace DataEncrypter.Forms
 {
     public partial class MainForm : Form
     {
@@ -27,7 +27,7 @@ namespace DataEncrypter
 
         private void MainForm_Load(object sender, EventArgs e)
         {
-            _secureFile = new SecureFile(_key);
+            _secureFile = new SecureFile();
             _secureFile.ChunkUpdate += SecureFile_ChunkUpdate;
             _secureFile.ProcessCompleted += SecureFile_ProcessCompleted;
 
@@ -73,11 +73,11 @@ namespace DataEncrypter
 
             if (mode_comboBox.SelectedIndex == 0)
             {
-                Task.Run(() => _secureFile.Encrypt(_filePath, Path.GetDirectoryName(_filePath), deleteOrig_checkBox.Checked));
+                Task.Run(() => _secureFile.Encrypt(_filePath, _key, Path.GetDirectoryName(_filePath), deleteOrig_checkBox.Checked));
             }
             else if (mode_comboBox.SelectedIndex == 1)
             {
-                Task.Run(() => _secureFile.Decrypt(_filePath, Path.GetDirectoryName(_filePath), deleteOrig_checkBox.Checked));
+                Task.Run(() => _secureFile.Decrypt(_filePath, _key, Path.GetDirectoryName(_filePath), deleteOrig_checkBox.Checked));
             }
         }
 
@@ -151,11 +151,10 @@ namespace DataEncrypter
             if (_filePath != "" && key_textBox.Text != "Key" && key_textBox.Text != "")
             {
                 _key = key_textBox.Text;
-                _secureFile.UpdateKey(_key);
 
                 if (mode_comboBox.SelectedIndex == 1)
                 {
-                    if (_secureFile.ValidateKeyForDecryption(_filePath))
+                    if (_secureFile.ValidateKeyForDecryption(_filePath, _key))
                     {
                         keyStatus_label.Text = "Key is Correct!";
                         keyStatus_label.ForeColor = Color.Green;

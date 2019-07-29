@@ -1,4 +1,4 @@
-﻿namespace DataEncrypter
+﻿namespace DataEncrypter.Forms
 {
     partial class MainForm
     {
