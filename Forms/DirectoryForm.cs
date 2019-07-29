@@ -22,6 +22,14 @@ namespace DataEncrypter.Forms
         {
             var dir = new SecureDirectory();
             dir.Create("dir.secd", "test");
+            dir.AddDirectory("test");
+            dir.MoveToChild("test");
+            dir.AddDirectory("intest");
+
+            dir.Save();
+
+            dir = new SecureDirectory();
+            dir.Open("dir.secd");
         }
     }
 }

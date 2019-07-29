@@ -8,6 +8,7 @@ namespace DataEncrypter.IO
 
     public partial class SecureDirectory
     {
+        [Serializable]
         public class SDir
         {
             public string Name { get; set; }
@@ -17,6 +18,7 @@ namespace DataEncrypter.IO
             public SFile[] Files { get; set; }
         }
 
+        [Serializable]
         public class SFile
         {
             public string Name { get; set; }

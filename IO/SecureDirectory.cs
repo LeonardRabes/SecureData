@@ -11,6 +11,7 @@ namespace DataEncrypter.IO
         public SDir ActiveDirectory { get; private set; }
 
         private ICypher _cypher;
+        private string _directoryPath;
         private FileStream _directoryStream;
         private byte[] _userKey;
         private byte[] _internalKey;
@@ -24,6 +25,8 @@ namespace DataEncrypter.IO
 
         public void Create(string filePath, string key, Cypher method = Cypher.AES)
         {
+            _directoryPath = filePath;
+
             var rng = new RNGCryptoServiceProvider();
             _userKey = BinaryTools.StringToBytes(key);
             _internalKey = new byte[16];
@@ -52,7 +55,21 @@ namespace DataEncrypter.IO
 
         public void Open(string filePath)
         {
-            throw new NotImplementedException();
+            using (var fstream = new FileStream(filePath, FileMode.Open))
+            {
+                byte[] bytes = new byte[fstream.Length];
+                fstream.Read(bytes, 0, (int)fstream.Length);
+                Tree = BinaryTools.DeserializeObject<SDir>(bytes);
+            }
+        }
+
+        public void Save()
+        {
+            using (var fstream = new FileStream(_directoryPath, FileMode.Create))
+            {
+                byte[] bytes = BinaryTools.SerializeObject(Tree);
+                fstream.Write(bytes, 0, bytes.Length);
+            }
         }
 
         public SDir SetActiveDir(string secureFilePath)
@@ -109,6 +126,7 @@ namespace DataEncrypter.IO
 
             c[c.Length - 1] = newDir;
 
+            ActiveDirectory.Children = c;
             return newDir;
         }
 
