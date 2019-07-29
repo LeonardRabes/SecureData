@@ -5,7 +5,7 @@ using DataEncrypter.Cyphers;
 
 namespace DataEncrypter.IO
 {
-    public partial class SecureDirectory
+    public partial class SecureDirectory : IDisposable
     {
         public SDir Tree { get; private set; }
         public SDir ActiveDirectory { get; private set; }
@@ -16,7 +16,11 @@ namespace DataEncrypter.IO
         private byte[] _userKey;
         private byte[] _internalKey;
 
+        private static int _headerSize = 7;
+        private static int _internalKeySize = 16;
         private static char _rootDirIdentifier = 'S';
+        private static string _secureDirType = "SECD";
+        private static string _secureDirExtension = ".secd";
 
         public SecureDirectory()
         {
@@ -26,10 +30,11 @@ namespace DataEncrypter.IO
         public void Create(string filePath, string key, Cypher method = Cypher.AES)
         {
             _directoryPath = filePath;
+            _directoryStream = new FileStream(filePath, FileMode.Create);
 
             var rng = new RNGCryptoServiceProvider();
             _userKey = BinaryTools.StringToBytes(key);
-            _internalKey = new byte[16];
+            _internalKey = new byte[_internalKeySize];
             rng.GetBytes(_internalKey);
 
             switch (method)
@@ -53,23 +58,27 @@ namespace DataEncrypter.IO
             ActiveDirectory = Tree;
         }
 
-        public void Open(string filePath)
+        public void Open(string filePath, string key)
         {
-            using (var fstream = new FileStream(filePath, FileMode.Open))
-            {
-                byte[] bytes = new byte[fstream.Length];
-                fstream.Read(bytes, 0, (int)fstream.Length);
-                Tree = BinaryTools.DeserializeObject<SDir>(bytes);
-            }
+            _directoryPath = filePath;
+            _directoryStream = new FileStream(filePath, FileMode.Open);
+
+            _userKey = BinaryTools.StringToBytes(key);
+
+            byte[] header = new byte[7];
+            _directoryStream.Read(header, 0, header.Length);
+
+            //TODO: Get Cypher
+            _cypher = new AES();
+
+            ReadInternalKey(_headerSize);
+            ReadTree(_headerSize + _internalKeySize);
         }
 
         public void Save()
         {
-            using (var fstream = new FileStream(_directoryPath, FileMode.Create))
-            {
-                byte[] bytes = BinaryTools.SerializeObject(Tree);
-                fstream.Write(bytes, 0, bytes.Length);
-            }
+            WriteInternalKey(_headerSize);
+            WriteTree(_headerSize + _internalKeySize);
         }
 
         public SDir SetActiveDir(string secureFilePath)
@@ -165,15 +174,73 @@ namespace DataEncrypter.IO
             return found;
         }
 
-
-        private void StreamToTree(int offset)
+        public void Dispose()
         {
-            throw new NotImplementedException();
+            _directoryStream.Close();
         }
 
-        private void TreeToStream(int offset)
+        private void ReadInternalKey(int offset)
         {
-            throw new NotImplementedException();
+            _directoryStream.Position = offset;
+            _internalKey = new byte[_internalKeySize];
+            _directoryStream.Read(_internalKey, 0, _internalKeySize);
+
+            _cypher.Decrypt(ref _internalKey, 0, _userKey);
+        }
+
+        private void WriteInternalKey(int offset)
+        {
+            _directoryStream.Position = offset;
+            byte[] key = new byte[_internalKeySize];
+            _internalKey.CopyTo(key, 0);
+
+            _cypher.Encrypt(ref key, 0, _userKey);
+
+            _directoryStream.Write(key, 0, _internalKeySize);
+        }
+
+        private void ReadTree(int offset)
+        {
+            int intByteSize = 4;
+
+            //read length 
+            _directoryStream.Position = offset;
+            int length = Math.Max(_cypher.MinDataSize, intByteSize);
+            byte[] bytes = new byte[length];
+            _directoryStream.Read(bytes, 0, length);
+            _cypher.Decrypt(ref bytes, 0, _internalKey);
+
+            //read encrypted tree data
+            _directoryStream.Position = offset;
+            length = BitConverter.ToInt32(bytes, 0);
+            bytes = new byte[_cypher.MinDataSize * (int)Math.Ceiling((length + intByteSize) / (float)_cypher.MinDataSize)];
+            _directoryStream.Read(bytes, 0, bytes.Length);
+            _cypher.Decrypt(ref bytes, 0, _internalKey);
+
+            //shorten array copy all bytes, that have index >= lengthByteSize && index < length 
+            byte[] tree = new byte[length];
+            Array.Copy(bytes, intByteSize, tree, 0, length);
+
+            Tree = BinaryTools.DeserializeObject<SDir>(tree);
+        }
+
+        private void WriteTree(int offset)
+        {
+            byte[] tree = BinaryTools.SerializeObject(Tree);
+            byte[] length = BitConverter.GetBytes(tree.Length);
+
+            //copy into single array
+            byte[] bytes = new byte[length.Length + tree.Length];
+            length.CopyTo(bytes, 0);
+            tree.CopyTo(bytes, length.Length);
+
+            //encrypt
+            _cypher.Padding(ref bytes);
+            _cypher.Encrypt(ref bytes, 0, _internalKey);
+
+            //write to stream
+            _directoryStream.Position = offset;
+            _directoryStream.Write(bytes, 0, bytes.Length);
         }
     }
 }

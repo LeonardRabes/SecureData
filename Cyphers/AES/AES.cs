@@ -8,6 +8,11 @@ namespace DataEncrypter.Cyphers
     public partial class AES : ICypher
     {
         /// <summary>
+        /// Size of minimal Data input to the AES
+        /// </summary>
+        public int MinDataSize { get => 16; }
+
+        /// <summary>
         /// Encrypts data with the Advanced Encryption Standard.
         /// </summary>
         /// <param name="plaintext">Plaintext, which is encrypted in place, length must be a multible of 16</param>

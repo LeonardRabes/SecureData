@@ -7,8 +7,16 @@ namespace DataEncrypter.Cyphers
         AES
     }
 
+    /// <summary>
+    /// Interface for Cyphers.
+    /// </summary>
     public interface ICypher
     {
+        /// <summary>
+        /// Size of minimal Data input to the Cypher
+        /// </summary>
+        int MinDataSize { get; }
+
         /// <summary>
         /// Encrypts data with a encryption algorithm.
         /// </summary>
