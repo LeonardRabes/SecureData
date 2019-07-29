@@ -77,8 +77,8 @@ namespace DataEncrypter.IO
             switch (method)
             {
                 case Cypher.AES:
-                    _cypher = new AES(Misc.StringToBytes(key));
-                    _cryptType = Misc.StringToBytes(_secureFileType + "AES");
+                    _cypher = new AES(BinaryTools.StringToBytes(key));
+                    _cryptType = BinaryTools.StringToBytes(_secureFileType + "AES");
                     break;
                 default:
                     throw new NotImplementedException();
@@ -109,9 +109,9 @@ namespace DataEncrypter.IO
             //secure header | 80 bytes
             List<byte> secureHeader = new List<byte>();
             secureHeader.AddRange(BitConverter.GetBytes(targetFile.Length));        //length of orig file | 8bytes
-            secureHeader.AddRange(Misc.StringToFixSizedByte(fileName, 40));                    //orig name of file | 40bytes
-            secureHeader.AddRange(Misc.StringToFixSizedByte(fileExtension, 16));               //orig file extension | 16bytes
-            secureHeader.AddRange(Misc.StringToBytes(_decryptionValidation));                   //validation string to determine if decryption is valid | 16bytes
+            secureHeader.AddRange(BinaryTools.StringToFixSizedByte(fileName, 40));                    //orig name of file | 40bytes
+            secureHeader.AddRange(BinaryTools.StringToFixSizedByte(fileExtension, 16));               //orig file extension | 16bytes
+            secureHeader.AddRange(BinaryTools.StringToBytes(_decryptionValidation));                   //validation string to determine if decryption is valid | 16bytes
 
             byte[] sh = secureHeader.ToArray();
             _cypher.Encrypt(ref sh, 0);
@@ -162,20 +162,20 @@ namespace DataEncrypter.IO
 
             #region read secure header
             //check file type
-            if (reader.ReadInt32() != BitConverter.ToInt32(Misc.StringToBytes(_secureFileType), 0))
+            if (reader.ReadInt32() != BitConverter.ToInt32(BinaryTools.StringToBytes(_secureFileType), 0))
             {
                 throw new Exception("Not SECF FileType!");
             }
-            string encryptionMethod = Misc.BytesToString(reader.ReadBytes(3)); //read encryption method
+            string encryptionMethod = BinaryTools.BytesToString(reader.ReadBytes(3)); //read encryption method
 
             //secure header | 80bytes
             byte[] secureHeader = reader.ReadBytes(_secureHeaderSize);
             _cypher.Decrypt(ref secureHeader, 0);
 
             long fileLength = BitConverter.ToInt64(secureHeader, 0);              //read length of original file | 8bytes
-            string fileName = Misc.StringFromFixSizedByte(secureHeader, 8);       //name of original file | 40bytes
-            string fileExtension = Misc.StringFromFixSizedByte(secureHeader, 48); //file extension of original file | 16bytes
-            string validation = Misc.BytesToString(secureHeader, 64);             //read validation | 16bytes
+            string fileName = BinaryTools.StringFromFixSizedByte(secureHeader, 8);       //name of original file | 40bytes
+            string fileExtension = BinaryTools.StringFromFixSizedByte(secureHeader, 48); //file extension of original file | 16bytes
+            string validation = BinaryTools.BytesToString(secureHeader, 64);             //read validation | 16bytes
 
             if (validation != _decryptionValidation) //check if key is correct
             {
@@ -223,7 +223,7 @@ namespace DataEncrypter.IO
         /// <param name="key">Key for en-/decryption</param>
         public void UpdateKey(string key)
         {
-            _cypher.UpdateKey(Misc.StringToBytes(key));
+            _cypher.UpdateKey(BinaryTools.StringToBytes(key));
         }
 
         /// <summary>
@@ -241,7 +241,7 @@ namespace DataEncrypter.IO
 
             _cypher.Decrypt(ref validation, 0);
 
-            return Misc.BytesToString(validation) == _decryptionValidation;
+            return BinaryTools.BytesToString(validation) == _decryptionValidation;
         }
 
         /// <summary>
@@ -326,7 +326,7 @@ namespace DataEncrypter.IO
             fs.Read(secf, 0, secf.Length);
             fs.Close();
 
-            return Misc.BytesToString(secf) == _secureFileType;
+            return BinaryTools.BytesToString(secf) == _secureFileType;
         }
 
         public static Cypher GetCypher(string filePath)

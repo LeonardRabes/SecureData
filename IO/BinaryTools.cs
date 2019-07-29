@@ -1,15 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.IO;
 
 namespace DataEncrypter.IO
 {
     /// <summary>
     /// Contains misc helper functions
     /// </summary>
-    public static class Misc
+    public static class BinaryTools
     {
         /// <summary>
         /// Converts a string to a byte array.
@@ -81,6 +78,25 @@ namespace DataEncrypter.IO
             }
 
             return str;
+        }
+
+        public static byte[] SerializeObject<T>(T objectToWrite)
+        {
+            using (var stream = new MemoryStream())
+            {
+                var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
+                binaryFormatter.Serialize(stream, objectToWrite);
+                return stream.ToArray();
+            }
+        }
+
+        public static T DeserializeObject<T>(byte[] objectToRead)
+        {
+            using (var stream = new MemoryStream(objectToRead))
+            {
+                var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
+                return (T)binaryFormatter.Deserialize(stream);
+            }
         }
     }
 }

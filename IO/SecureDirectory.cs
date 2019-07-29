@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Security.Cryptography;
 using DataEncrypter.Cyphers;
 
 namespace DataEncrypter.IO
@@ -11,7 +12,8 @@ namespace DataEncrypter.IO
 
         private ICypher _cypher;
         private FileStream _directoryStream;
-        
+        private byte[] _userKey;
+        private byte[] _internalKey;
 
         private static char _rootDirIdentifier = 'S';
 
@@ -20,15 +22,20 @@ namespace DataEncrypter.IO
             switch (method)
             {
                 case Cypher.AES:
-                    _cypher = new AES(Misc.StringToBytes(key));
+                    _cypher = new AES(BinaryTools.StringToBytes(key));
                     break;
                 default:
                     throw new NotImplementedException();
             }
         }
 
-        public void Create(string filePath)
+        public void Create(string filePath, string key)
         {
+            var rng = new RNGCryptoServiceProvider();
+            _userKey = BinaryTools.StringToBytes(key);
+            _internalKey = new byte[16];
+            rng.GetBytes(_internalKey);
+
             Tree = new SDir
             {
                 Name = _rootDirIdentifier + "",
@@ -48,20 +55,44 @@ namespace DataEncrypter.IO
 
         public SDir SetActiveDir(string secureFilePath)
         {
-            throw new NotImplementedException();
+            bool found = FindDirectory(secureFilePath, out SDir dir);
+
+            if (found)
+            {
+                ActiveDirectory = dir;
+            }
+
+            return dir;
         }
 
-        public void MoveToParent()
+        public bool MoveToParent()
         {
-            ActiveDirectory = ActiveDirectory.Parent;
+            SDir dir = ActiveDirectory.Parent;
+
+            bool found = dir != null;
+
+            if (found)
+            {
+                ActiveDirectory = dir;
+            }
+
+            return found;
         }
 
-        public void MoveToChild(string name)
+        public bool MoveToChild(string name)
         {
-            ActiveDirectory = Array.Find(ActiveDirectory.Children, d => d.Name == name);
+            var dir = Array.Find(ActiveDirectory.Children, d => d.Name == name);
+            bool found = dir != null;
+
+            if (found)
+            {
+                ActiveDirectory = dir;
+            }
+
+            return found;
         }
 
-        public SDir CreateDirectory(string name)
+        public SDir AddDirectory(string name)
         {
             var c = ActiveDirectory.Children;
             Array.Resize(ref c, c.Length + 1);
@@ -79,12 +110,19 @@ namespace DataEncrypter.IO
             return newDir;
         }
 
+        public SFile AddFile()
+        {
+            throw new NotImplementedException();
+        }
+
         public bool FindDirectory(string securePath, out SDir foundDir)
         {
             string[] dirNames = securePath.Split(Path.DirectorySeparatorChar);
 
             SDir dir = null;
             bool found = false;
+
+            findNext(0, Tree);
 
             void findNext(int depth, SDir currentDir)
             {
@@ -110,12 +148,12 @@ namespace DataEncrypter.IO
 
         private void StreamToTree(int offset)
         {
-
+            throw new NotImplementedException();
         }
 
         private void TreeToStream(int offset)
         {
-
+            throw new NotImplementedException();
         }
     }
 }
