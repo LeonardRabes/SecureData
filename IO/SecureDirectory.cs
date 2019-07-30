@@ -16,11 +16,11 @@ namespace DataEncrypter.IO
         private byte[] _userKey;
         private byte[] _internalKey;
 
-        private static int _headerSize = 7;
-        private static int _internalKeySize = 16;
-        private static char _rootDirIdentifier = 'S';
-        private static string _secureDirType = "SECD";
-        private static string _secureDirExtension = ".secd";
+        private const int _headerSize = 7;
+        private const int _internalKeySize = 16;
+        private const char _rootDirIdentifier = 'S';
+        private const string _secureDirType = "SECD";
+        private const string _secureDirExtension = ".secd";
 
         public SecureDirectory()
         {

@@ -18,7 +18,7 @@ namespace DataEncrypter.Cyphers
         int MinDataSize { get; }
 
         /// <summary>
-        /// Encrypts data with a encryption algorithm.
+        /// Encrypts data with an encryption algorithm.
         /// </summary>
         /// <param name="plaintext">Plaintext, which is encrypted in place.</param>
         /// <param name="startIndex">Index to start the process from.</param>
@@ -26,7 +26,7 @@ namespace DataEncrypter.Cyphers
         void Encrypt(ref byte[] plaintext, int startIndex, byte[] key);
 
         /// <summary>
-        /// Decrypts data with a decryption algorithm.
+        /// Decrypts data with an decryption algorithm.
         /// </summary>
         /// <param name="cyphertex">Cyphertex, which is decrypted in place.</param>
         /// <param name="startIndex">Index to start the process from.</param>

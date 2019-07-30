@@ -4,8 +4,6 @@ using DataEncrypter.Cyphers;
 
 namespace DataEncrypter.IO
 {
-
-
     public partial class SecureDirectory
     {
         [Serializable]
@@ -24,7 +22,9 @@ namespace DataEncrypter.IO
             public string Name { get; set; }
             public string SecurePath { get; set; }
             public SDir Parent { get; set; }
-            public int StreamOffset { get; set; }
+            
+            public long Size { get; set; }
+            public uint[] MemoryChunks { get; set; }
         }
     }
 }

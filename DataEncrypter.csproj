@@ -81,6 +81,7 @@
     <Compile Include="IO\BinaryTools.cs" />
     <Compile Include="IO\SecureDelete.cs" />
     <Compile Include="IO\SecureDirectory.cs" />
+    <Compile Include="IO\SecureDirectory_Memory.cs" />
     <Compile Include="IO\SecureDirectory_Types.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
