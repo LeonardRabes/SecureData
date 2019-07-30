@@ -13,6 +13,11 @@ namespace DataEncrypter.Cyphers
         public int MinDataSize { get => 16; }
 
         /// <summary>
+        /// String to identify AES
+        /// </summary>
+        public string CypherIdentifier { get => "AES"; }
+
+        /// <summary>
         /// Encrypts data with the Advanced Encryption Standard.
         /// </summary>
         /// <param name="plaintext">Plaintext, which is encrypted in place, length must be a multible of 16</param>

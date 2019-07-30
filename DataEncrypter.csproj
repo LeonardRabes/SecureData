@@ -80,9 +80,10 @@
     </Compile>
     <Compile Include="IO\BinaryTools.cs" />
     <Compile Include="IO\SecureDelete.cs" />
-    <Compile Include="IO\SecureDirectory.cs" />
-    <Compile Include="IO\SecureDirectory_Memory.cs" />
-    <Compile Include="IO\SecureDirectory_Types.cs" />
+    <Compile Include="IO\SecureDirectory\SecureDirectory.cs" />
+    <Compile Include="IO\SecureDirectory\SecureDirectory_Directory.cs" />
+    <Compile Include="IO\SecureDirectory\SecureDirectory_File.cs" />
+    <Compile Include="IO\SecureDirectory\SecureDirectory_Memory.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="IO\SecureFile.cs" />

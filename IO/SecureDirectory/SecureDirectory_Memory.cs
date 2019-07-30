@@ -10,6 +10,11 @@ namespace DataEncrypter.IO
         {
             public const int ChunkSize = ushort.MaxValue + 1;
 
+            public int[] AllocatableChunks { get => _allocatableChunks; }
+            public int[] OccupiedChunks { get => _occupiedChunks; }
+            public long AllocationStartIndex { get => _allocStartIndex; }
+            public int ChunkCount { get => _chunkCount; }
+
             private int[] _allocatableChunks;
             private int[] _occupiedChunks;
 
@@ -78,17 +83,18 @@ namespace DataEncrypter.IO
                 return allocated;
             }
 
-            public void SecureWrite(Stream input, int[] targetChunks, ICypher cypher, byte[] key)
+            public void SecureWrite(Stream source, int[] targetChunks, ICypher cypher, byte[] key)
             {
-                long totalBytes = input.Length;
+                long totalBytes = source.Length;
                 byte[] buffer = new byte[ChunkSize];
+                source.Position = 0;
 
                 for (int i = 0; totalBytes > 0; i++)
                 {
                     int byteCount = (int)Math.Min(ChunkSize, totalBytes); //amount of bytes to write
                     long offset = _allocStartIndex + targetChunks[i] * ChunkSize; //offset for chunks
 
-                    input.Read(buffer, 0, byteCount); //read entire/partial chunk
+                    source.Read(buffer, 0, byteCount); //read entire/partial chunk
 
                     cypher.Encrypt(ref buffer, 0, key);
 
@@ -106,6 +112,7 @@ namespace DataEncrypter.IO
             {
                 long totalBytes = length;
                 byte[] buffer = new byte[ChunkSize];
+                output.Position = 0;
 
                 for (int i = 0; totalBytes > 0; i++)
                 {
@@ -127,10 +134,35 @@ namespace DataEncrypter.IO
             /// Marks chunks as allocatable.
             /// </summary>
             /// <param name="targetChunks">Chunks to be marked</param>
-            public void Deallocate(int[] targetChunks)
+            /// <returns>Boolean, if deallocation was successfull</returns>
+            public bool Deallocate(int[] targetChunks)
             {
-                AddChunks(ref _allocatableChunks, targetChunks);
-                RemoveChunks(ref _occupiedChunks, targetChunks);
+                bool contains = ContainsChunks(_occupiedChunks, targetChunks); //check if target chunks were allocated
+                if (contains)
+                {
+                    AddChunks(ref _allocatableChunks, targetChunks);
+                    RemoveChunks(ref _occupiedChunks, targetChunks);
+                }
+
+                return contains;
+            }
+
+            private bool ContainsChunks(int[] array, int[] chunks)
+            {
+                int found = 0;
+                for (int iter = 0; iter < array.Length; iter++)
+                {
+                    for (int i = 0; i < chunks.Length; i++)
+                    {
+                        if (array[iter] == chunks[i])
+                        {
+                            found++;
+                            break;
+                        }
+                    }
+                }
+
+                return found == chunks.Length;
             }
 
             private void AddChunks(ref int[] array, int[] chunks)

@@ -72,17 +72,9 @@ namespace DataEncrypter.IO
         /// <param name="filePath">File path to the file, which will be en-/decrypted.</param>
         /// <param name="key">The key for the Cypher</param>
         /// <param name="method">The method of en-/decryption</param>
-        public SecureFile(Cypher method = Cypher.AES)
+        public SecureFile(ICypher cypher)
         {
-            switch (method)
-            {
-                case Cypher.AES:
-                    _cypher = new AES();
-                    _cryptType = BinaryTools.StringToBytes(_secureFileType + "AES");
-                    break;
-                default:
-                    throw new NotImplementedException();
-            }
+            _cypher = cypher;
         }
 
         /// <summary>
@@ -321,7 +313,7 @@ namespace DataEncrypter.IO
             return BinaryTools.BytesToString(secf) == _secureFileType;
         }
 
-        public static Cypher GetCypher(string filePath)
+        public static ICypher GetCypher(string filePath)
         {
             var fs = new FileStream(filePath, FileMode.Open);
             byte[] crypt = new byte[3];

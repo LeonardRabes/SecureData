@@ -27,7 +27,7 @@ namespace DataEncrypter.Forms
 
         private void MainForm_Load(object sender, EventArgs e)
         {
-            _secureFile = new SecureFile();
+            _secureFile = new SecureFile(new AES());
             _secureFile.ChunkUpdate += SecureFile_ChunkUpdate;
             _secureFile.ProcessCompleted += SecureFile_ProcessCompleted;
 

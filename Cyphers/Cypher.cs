@@ -2,11 +2,6 @@
 
 namespace DataEncrypter.Cyphers
 {
-    public enum Cypher
-    {
-        AES
-    }
-
     /// <summary>
     /// Interface for Cyphers.
     /// </summary>
@@ -16,6 +11,11 @@ namespace DataEncrypter.Cyphers
         /// Size of minimal Data input to the Cypher
         /// </summary>
         int MinDataSize { get; }
+
+        /// <summary>
+        /// String to identify Cyphers
+        /// </summary>
+        string CypherIdentifier { get; }
 
         /// <summary>
         /// Encrypts data with an encryption algorithm.
