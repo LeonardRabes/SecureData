@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using System.IO;
 
-namespace DataEncrypter.IO
+namespace SecureData.IO
 {
     public static class SecureDelete
     {

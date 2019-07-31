@@ -1,4 +1,4 @@
-﻿namespace DataEncrypter.Forms
+﻿namespace DataEncryption.Forms
 {
     partial class DirectoryForm
     {

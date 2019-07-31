@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using DataEncrypter.Cyphers;
+using SecureData.Cyphers;
 
-namespace DataEncrypter.IO
+namespace SecureData.IO
 {
     public class ChunkEventArgs : EventArgs
     {

@@ -8,10 +8,10 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.IO;
-using DataEncrypter.Cyphers;
-using DataEncrypter.IO;
+using SecureData.Cyphers;
+using SecureData.IO;
 
-namespace DataEncrypter.Forms
+namespace DataEncryption.Forms
 {
     public partial class MainForm : Form
     {

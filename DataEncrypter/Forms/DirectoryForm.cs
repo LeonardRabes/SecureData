@@ -8,10 +8,10 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.IO;
-using DataEncrypter.IO;
-using DataEncrypter.Cyphers;
+using SecureData.IO;
+using SecureData.Cyphers;
 
-namespace DataEncrypter.Forms
+namespace DataEncryption.Forms
 {
     public partial class DirectoryForm : Form
     {

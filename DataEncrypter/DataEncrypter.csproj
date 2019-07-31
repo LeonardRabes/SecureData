@@ -8,7 +8,7 @@
     <OutputType>WinExe</OutputType>
     <RootNamespace>DataEncrypter</RootNamespace>
     <AssemblyName>DataEncrypter</AssemblyName>
-    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
@@ -63,9 +63,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Cyphers\AES\AES.cs" />
-    <Compile Include="Cyphers\AES\AES_Tables.cs" />
-    <Compile Include="Cyphers\Cypher.cs" />
     <Compile Include="Forms\DirectoryForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -78,15 +75,8 @@
     <Compile Include="Forms\MainForm.Designer.cs">
       <DependentUpon>MainForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="IO\BinaryTools.cs" />
-    <Compile Include="IO\SecureDelete.cs" />
-    <Compile Include="IO\SecureDirectory\SecureDirectory.cs" />
-    <Compile Include="IO\SecureDirectory\SecureDirectory_Directory.cs" />
-    <Compile Include="IO\SecureDirectory\SecureDirectory_File.cs" />
-    <Compile Include="IO\SecureDirectory\SecureDirectory_Memory.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="IO\SecureFile.cs" />
     <EmbeddedResource Include="Forms\DirectoryForm.resx">
       <DependentUpon>DirectoryForm.cs</DependentUpon>
     </EmbeddedResource>
@@ -124,6 +114,12 @@
       <ProductName>.NET Framework 3.5 SP1</ProductName>
       <Install>false</Install>
     </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SecureData\SecureData.csproj">
+      <Project>{6621b7ac-1783-4c28-847c-9152d14ada4c}</Project>
+      <Name>SecureData</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

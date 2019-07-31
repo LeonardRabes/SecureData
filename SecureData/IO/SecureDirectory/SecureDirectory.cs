@@ -1,9 +1,9 @@
 ﻿using System;
 using System.IO;
 using System.Security.Cryptography;
-using DataEncrypter.Cyphers;
+using SecureData.Cyphers;
 
-namespace DataEncrypter.IO
+namespace SecureData.IO
 {
     public partial class SecureDirectory : IDisposable
     {

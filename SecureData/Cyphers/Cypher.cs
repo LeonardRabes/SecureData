@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DataEncrypter.Cyphers
+namespace SecureData.Cyphers
 {
     /// <summary>
     /// Interface for Cyphers.

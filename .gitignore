@@ -1,7 +1,6 @@
 #vs
-bin/*
-obj/*
-Properties/*
+*/bin/*
+*/obj/*
 .vs/*
-App.config
+*/.vs/*
 *.user

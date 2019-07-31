@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 
-namespace DataEncrypter.IO
+namespace SecureData.IO
 {
     public partial class SecureDirectory
     {

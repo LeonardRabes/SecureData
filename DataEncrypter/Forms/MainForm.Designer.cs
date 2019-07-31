@@ -1,4 +1,4 @@
-﻿namespace DataEncrypter.Forms
+﻿namespace DataEncryption.Forms
 {
     partial class MainForm
     {
@@ -42,7 +42,7 @@
             // 
             // chunkUpdate_progressBar
             // 
-            this.chunkUpdate_progressBar.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
+            this.chunkUpdate_progressBar.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
             this.chunkUpdate_progressBar.Location = new System.Drawing.Point(12, 445);
             this.chunkUpdate_progressBar.Name = "chunkUpdate_progressBar";
@@ -110,8 +110,8 @@
             // 
             // log_textBox
             // 
-            this.log_textBox.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
+            this.log_textBox.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
+            | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
             this.log_textBox.Location = new System.Drawing.Point(12, 97);
             this.log_textBox.Name = "log_textBox";
