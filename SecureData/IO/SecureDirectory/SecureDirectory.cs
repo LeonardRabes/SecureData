@@ -197,23 +197,23 @@ namespace SecureData.IO
             var reader = new BinaryReader(_directoryStream);
 
             long startIndex = reader.ReadInt64();
-            int chunkCount = reader.ReadInt32();
+            int sectorCount = reader.ReadInt32();
 
             int length = reader.ReadInt32();
-            int[] allocChunks = new int[length];
+            int[] allocSectors = new int[length];
             for (int i = 0; i < length; i++)
             {
-                allocChunks[i] = reader.ReadInt32();
+                allocSectors[i] = reader.ReadInt32();
             }
 
             length = reader.ReadInt32();
-            int[] occChunks = new int[length];
+            int[] occSectors = new int[length];
             for (int i = 0; i < length; i++)
             {
-                occChunks[i] = reader.ReadInt32();
+                occSectors[i] = reader.ReadInt32();
             }
 
-            _directoryManager = new MemoryManager(_directoryStream, startIndex, chunkCount, allocChunks, occChunks);
+            _directoryManager = new MemoryManager(_directoryStream, startIndex, sectorCount, allocSectors, occSectors);
         }
 
         private void WriteMemoryInfo(long offset)
@@ -222,16 +222,16 @@ namespace SecureData.IO
             var writer = new BinaryWriter(_directoryStream);
 
             writer.Write(_directoryManager.AllocationStartIndex);
-            writer.Write(_directoryManager.ChunkCount);
+            writer.Write(_directoryManager.SectorCount);
 
-            writer.Write(_directoryManager.AllocatableChunks.Length);
-            foreach (var c in _directoryManager.AllocatableChunks)
+            writer.Write(_directoryManager.AllocatableSectors.Length);
+            foreach (var c in _directoryManager.AllocatableSectors)
             {
                 writer.Write(c);
             }
 
-            writer.Write(_directoryManager.OccupiedChunks.Length);
-            foreach (var c in _directoryManager.OccupiedChunks)
+            writer.Write(_directoryManager.OccupiedSectors.Length);
+            foreach (var c in _directoryManager.OccupiedSectors)
             {
                 writer.Write(c);
             }
