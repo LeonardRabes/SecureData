@@ -58,13 +58,12 @@ namespace SecureData.IO
         public event ProcessCompletedEventHandler ProcessCompleted;
 
         private ICypher _cypher;
-        private byte[] _cryptType;
 
-        private static string _secureFileType = "SECF"; //abreviation: SECureFile
-        private static string _secureFileExtension = ".secf";
-        private static int _secureHeaderSize = 80;
-        private static int _chunkSize = 1_048_576; //int.MaxValue / 2048 => roughly 1mb
-        private static string _decryptionValidation = "decryption_valid";
+        private const string _secureFileType = "SECF"; //abreviation: SECureFile
+        private const string _secureFileExtension = ".secf";
+        private const int _secureHeaderSize = 80;
+        private const int _chunkSize = 1_048_576; //int.MaxValue / 2048 => roughly 1mb
+        private const string _decryptionValidation = "decryption_valid";
 
         /// <summary>
         /// Contructs basic data for file en-/decryption. This includes a temporary file to save data.
@@ -97,7 +96,7 @@ namespace SecureData.IO
 
             #region write header
             //write unsecure header
-            writer.Write(_cryptType);                                                //file type | 7bytes
+            writer.Write(BinaryTools.StringToBytes(_secureFileType + _cypher.CypherIdentifier));                                                //file type | 7bytes
 
             //secure header | 80 bytes
             List<byte> secureHeader = new List<byte>();
@@ -219,7 +218,7 @@ namespace SecureData.IO
             var fs = new FileStream(filePath, FileMode.Open);
             byte[] validation = new byte[_decryptionValidation.Length];
 
-            fs.Position = _cryptType.Length + _secureHeaderSize - _decryptionValidation.Length;
+            fs.Position = _secureFileType.Length + _cypher.CypherIdentifier.Length + _secureHeaderSize - _decryptionValidation.Length;
             fs.Read(validation, 0, validation.Length);
             fs.Close();
 
@@ -310,7 +309,9 @@ namespace SecureData.IO
             fs.Read(secf, 0, secf.Length);
             fs.Close();
 
-            return BinaryTools.BytesToString(secf) == _secureFileType;
+            string str = BinaryTools.BytesToString(secf);
+
+            return str == _secureFileType;
         }
 
         public static ICypher GetCypher(string filePath)

@@ -3,9 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using DataEncryption.Forms;
 
-namespace DataEncryption
+namespace DataEncrypter
 {
     static class Program
     {
@@ -17,7 +16,7 @@ namespace DataEncryption
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new DirectoryForm());
+            Application.Run(new MainForm());
         }
     }
 }

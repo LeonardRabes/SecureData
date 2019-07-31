@@ -11,7 +11,7 @@ using System.IO;
 using SecureData.Cyphers;
 using SecureData.IO;
 
-namespace DataEncryption.Forms
+namespace DataEncrypter
 {
     public partial class MainForm : Form
     {

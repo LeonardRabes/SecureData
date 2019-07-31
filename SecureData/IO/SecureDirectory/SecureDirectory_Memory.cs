@@ -83,6 +83,13 @@ namespace SecureData.IO
                 return allocated;
             }
 
+            /// <summary>
+            /// Writes data into referenced sectors
+            /// </summary>
+            /// <param name="source">Source stream of data</param>
+            /// <param name="targetSectors">Sector references to write</param>
+            /// <param name="cypher">Cypher for encryption</param>
+            /// <param name="key">Key for encryption</param>
             public void SecureWrite(Stream source, int[] targetSectors, ICypher cypher, byte[] key)
             {
                 long totalBytes = source.Length;

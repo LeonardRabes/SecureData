@@ -27,6 +27,11 @@ namespace SecureData.IO
             return dir;
         }
 
+        public void SetActiveDir(SDir dir)
+        {
+            ActiveDirectory = dir;
+        }
+
         public bool MoveToParent()
         {
             SDir dir = ActiveDirectory.Parent;
@@ -52,6 +57,17 @@ namespace SecureData.IO
             }
 
             return found;
+        }
+
+        public bool MoveToChild(int childID)
+        {
+            bool exists = childID >= 0 && childID < ActiveDirectory.Children.Length;
+            if (exists)
+            {
+                ActiveDirectory = ActiveDirectory.Children[childID];
+            }
+
+            return exists;
         }
 
         public SDir AddDirectory(string name)

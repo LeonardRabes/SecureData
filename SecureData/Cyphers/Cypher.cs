@@ -39,4 +39,18 @@ namespace SecureData.Cyphers
         /// <param name="state">Reference to the current encryption state</param>
         void Padding(ref byte[] state);
     }
+
+    public static class Cypher
+    {
+        public static ICypher GetByIdentifier(string identifier)
+        {
+            switch (identifier)
+            {
+                case "AES":
+                    return new AES();
+                default:
+                    throw new NotSupportedException();
+            }
+        }
+    }
 }

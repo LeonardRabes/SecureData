@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataEncrypter", "DataEncryp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SecureData", "SecureData\SecureData.csproj", "{6621B7AC-1783-4C28-847C-9152D14ADA4C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SecureDir", "SecureDir\SecureDir.csproj", "{90D473A6-A3A1-4BA9-AAC8-67E2584C82EF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{6621B7AC-1783-4C28-847C-9152D14ADA4C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6621B7AC-1783-4C28-847C-9152D14ADA4C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6621B7AC-1783-4C28-847C-9152D14ADA4C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{90D473A6-A3A1-4BA9-AAC8-67E2584C82EF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{90D473A6-A3A1-4BA9-AAC8-67E2584C82EF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{90D473A6-A3A1-4BA9-AAC8-67E2584C82EF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{90D473A6-A3A1-4BA9-AAC8-67E2584C82EF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

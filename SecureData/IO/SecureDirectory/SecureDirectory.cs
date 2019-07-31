@@ -21,14 +21,16 @@ namespace SecureData.IO
         private const char _rootDirIdentifier = 'S';
         private const string _secureDirType = "SECD";
         private const string _secureDirExtension = ".secd";
+        private const string _decryptionValidation = "decryption_valid";
 
-        private enum FileIndices
+        private struct FileIndices
         {
-            Header = 0,
-            InternalKey = 8,
-            TreeRef = 24,
-            MemoryRef = 32,
-            MemoryData = 40
+            public const long Header = 0;
+            public const long DecryptionValidation = 8;
+            public const long InternalKey = 24;
+            public const long TreeRef = 40;
+            public const long MemoryRef = 48;
+            public const long MemoryData = 56;
         }
 
         public SecureDirectory()
@@ -50,11 +52,17 @@ namespace SecureData.IO
             writer.Write(BinaryTools.StringToBytes(_secureDirType));
             writer.Write(BinaryTools.StringToBytes(_cypher.CypherIdentifier));
 
+            //Decryption Validation (encyrpted with _userKey)
+            _directoryStream.Position = FileIndices.DecryptionValidation;
+            byte[] validation = BinaryTools.StringToBytes(_decryptionValidation);
+            _cypher.Encrypt(ref validation, 0, _userKey);
+            _directoryStream.Write(validation, 0, _decryptionValidation.Length);
+
             //Internal key
             var rng = new RNGCryptoServiceProvider();
             _internalKey = new byte[_internalKeySize];
             rng.GetBytes(_internalKey);
-            WriteInternalKey((long)FileIndices.InternalKey);
+            WriteInternalKey(FileIndices.InternalKey);
 
             //Tree
             Tree = new SDir
@@ -66,13 +74,11 @@ namespace SecureData.IO
                 Files = new SFile[0]
             };
             ActiveDirectory = Tree;
-            _directoryStream.Position = (long)FileIndices.TreeRef;
-            writer.Write((long)0);
+            _directoryStream.Position = FileIndices.TreeRef;
 
             //Memory
-            _directoryStream.Position = (long)FileIndices.MemoryRef;
-            writer.Write((long)0);
-            _directoryManager = new MemoryManager(_directoryStream, (long)FileIndices.MemoryData, 0, new int[0], new int[0]);
+            _directoryStream.Position = FileIndices.MemoryRef;
+            _directoryManager = new MemoryManager(_directoryStream, FileIndices.MemoryData, 0, new int[0], new int[0]);
         }
 
         public void Open(string filePath, ICypher cypher, string key)
@@ -86,20 +92,20 @@ namespace SecureData.IO
             _userKey = BinaryTools.StringToBytes(key);
 
             //Header
-            _directoryStream.Position = (long)FileIndices.Header;
+            _directoryStream.Position = FileIndices.Header;
             reader.ReadBytes(_secureDirType.Length);
             reader.ReadBytes(cypher.CypherIdentifier.Length);
 
             //Internal key
-            ReadInternalKey((long)FileIndices.InternalKey);
+            ReadInternalKey(FileIndices.InternalKey);
 
             //Tree
-            _directoryStream.Position = (long)FileIndices.TreeRef;
+            _directoryStream.Position = FileIndices.TreeRef;
             ReadTree(reader.ReadInt64());
             ActiveDirectory = Tree;
 
             //Memory
-            _directoryStream.Position = (long)FileIndices.MemoryRef;
+            _directoryStream.Position = FileIndices.MemoryRef;
             ReadMemoryInfo(reader.ReadInt64());
 
             _userKey = BinaryTools.StringToBytes(key);
@@ -110,16 +116,24 @@ namespace SecureData.IO
 
         public void Save()
         {
+            long offset = FileIndices.MemoryRef + _directoryManager.SectorCount * (long)MemoryManager.SectorSize;
+
             //Tree
-            _directoryStream.Position = (long)FileIndices.TreeRef;
-            _directoryStream.Write(BitConverter.GetBytes(_directoryStream.Length), 0, 8);
-            WriteTree(_directoryStream.Length);
+            _directoryStream.Position = FileIndices.TreeRef;
+            _directoryStream.Write(BitConverter.GetBytes(offset), 0, 8);
+            WriteTree(offset);
+
+            offset = _directoryStream.Position;
 
             //Memory
-            _directoryStream.Position = (long)FileIndices.MemoryRef;
-            _directoryStream.Write(BitConverter.GetBytes(_directoryStream.Length), 0, 8);
-            WriteMemoryInfo(_directoryStream.Length);
+            _directoryStream.Position = FileIndices.MemoryRef;
+            _directoryStream.Write(BitConverter.GetBytes(offset), 0, 8);
+            WriteMemoryInfo(offset);
+
+            _directoryStream.Flush();
         }
+
+        
 
         public void Dispose()
         {
@@ -148,46 +162,42 @@ namespace SecureData.IO
 
         private void ReadTree(long offset)
         {
-            int intByteSize = 4;
+            var reader = new BinaryReader(_directoryStream);
+            _directoryStream.Position = offset;
 
             //read length 
-            _directoryStream.Position = offset;
-            int length = Math.Max(_cypher.MinDataSize, intByteSize);
-            byte[] bytes = new byte[length];
-            _directoryStream.Read(bytes, 0, length);
-            _cypher.Decrypt(ref bytes, 0, _internalKey);
+            int length = reader.ReadInt32();
 
             //read encrypted tree data
-            _directoryStream.Position = offset;
-            length = BitConverter.ToInt32(bytes, 0);
-            bytes = new byte[_cypher.MinDataSize * (int)Math.Ceiling((length + intByteSize) / (float)_cypher.MinDataSize)];
+            byte[] bytes = new byte[length];
+            _cypher.Padding(ref bytes);
             _directoryStream.Read(bytes, 0, bytes.Length);
+
             _cypher.Decrypt(ref bytes, 0, _internalKey);
 
             //shorten array copy all bytes, that have index >= lengthByteSize && index < length 
             byte[] tree = new byte[length];
-            Array.Copy(bytes, intByteSize, tree, 0, length);
+            Array.Copy(bytes, 0, tree, 0, length);
 
             Tree = BinaryTools.DeserializeObject<SDir>(tree);
         }
 
         private void WriteTree(long offset)
         {
-            byte[] tree = BinaryTools.SerializeObject(Tree);
-            byte[] length = BitConverter.GetBytes(tree.Length);
+            var writer = new BinaryWriter(_directoryStream);
+            _directoryStream.Position = offset;
 
-            //copy into single array
-            byte[] bytes = new byte[length.Length + tree.Length];
-            length.CopyTo(bytes, 0);
-            tree.CopyTo(bytes, length.Length);
+            //deserialize tree
+            byte[] tree = BinaryTools.SerializeObject(Tree);
+
+            writer.Write(tree.Length);
 
             //encrypt
-            _cypher.Padding(ref bytes);
-            _cypher.Encrypt(ref bytes, 0, _internalKey);
+            _cypher.Padding(ref tree);
+            _cypher.Encrypt(ref tree, 0, _internalKey);
 
             //write to stream
-            _directoryStream.Position = offset;
-            _directoryStream.Write(bytes, 0, bytes.Length);
+            writer.Write(tree);
         }
 
 
@@ -235,6 +245,24 @@ namespace SecureData.IO
             {
                 writer.Write(c);
             }
+        }
+
+        /// <summary>
+        /// Checks if the current key is able to decrypt the file.
+        /// </summary>
+        /// <returns>Boolean, which indicates if the key is valid.</returns>
+        public static bool ValidateKeyForDecryption(string filePath, ICypher cypher, string key)
+        {
+            var fs = new FileStream(filePath, FileMode.Open);
+            byte[] validation = new byte[_decryptionValidation.Length];
+
+            fs.Position = (long)FileIndices.DecryptionValidation;
+            fs.Read(validation, 0, validation.Length);
+            fs.Close();
+
+            cypher.Decrypt(ref validation, 0, BinaryTools.StringToBytes(key));
+
+            return BinaryTools.BytesToString(validation) == _decryptionValidation;
         }
     }
 }
