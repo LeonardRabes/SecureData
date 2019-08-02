@@ -35,6 +35,7 @@ namespace SecureData.IO
                 _directoryStream = directoryStream;
                 _allocStartIndex = startIndex;
 
+                _sectorCount = sectorCount;
                 _allocatableSectors = allocSectors;
                 _occupiedSectors = occSectors;
             }

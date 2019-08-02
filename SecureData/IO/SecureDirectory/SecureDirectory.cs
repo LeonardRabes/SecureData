@@ -116,7 +116,7 @@ namespace SecureData.IO
 
         public void Save()
         {
-            long offset = FileIndices.MemoryRef + _directoryManager.SectorCount * (long)MemoryManager.SectorSize;
+            long offset = FileIndices.MemoryData + _directoryManager.SectorCount * (long)MemoryManager.SectorSize;
 
             //Tree
             _directoryStream.Position = FileIndices.TreeRef;
@@ -235,15 +235,15 @@ namespace SecureData.IO
             writer.Write(_directoryManager.SectorCount);
 
             writer.Write(_directoryManager.AllocatableSectors.Length);
-            foreach (var c in _directoryManager.AllocatableSectors)
+            foreach (var s in _directoryManager.AllocatableSectors)
             {
-                writer.Write(c);
+                writer.Write(s);
             }
 
             writer.Write(_directoryManager.OccupiedSectors.Length);
-            foreach (var c in _directoryManager.OccupiedSectors)
+            foreach (var s in _directoryManager.OccupiedSectors)
             {
-                writer.Write(c);
+                writer.Write(s);
             }
         }
 
