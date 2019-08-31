@@ -24,7 +24,7 @@ namespace SecureData.IO
                 ActiveDirectory = dir;
             }
 
-            return dir;
+            return ActiveDirectory;
         }
 
         public void SetActiveDir(SDir dir)
@@ -70,23 +70,76 @@ namespace SecureData.IO
             return exists;
         }
 
-        public SDir AddDirectory(string name)
+        public SDir AddDirectory(string securePath)
         {
+            string name = Path.GetDirectoryName(securePath);
+            bool success = FindDirectory(securePath.Replace(name, ""), out SDir parent);
+
             var newDir = new SDir
             {
                 Name = name,
-                SecurePath = Path.Combine(ActiveDirectory.SecurePath, name),
-                Parent = ActiveDirectory,
+                SecurePath = securePath,
+                Parent = parent,
                 Children = new SDir[0],
                 Files = new SFile[0]
             };
 
-            var c = ActiveDirectory.Children;
-            Array.Resize(ref c, c.Length + 1);
-            c[c.Length - 1] = newDir;
+            if (success)
+            {
+                var c = ActiveDirectory.Children;
+                Array.Resize(ref c, c.Length + 1);
+                c[c.Length - 1] = newDir;
 
-            ActiveDirectory.Children = c;
-            return newDir;
+                ActiveDirectory.Children = c;
+                return newDir;
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        public bool DeleteDirectory(string securePath)
+        {
+            var success = FindDirectory(securePath, out SDir foundDir);
+
+            if (success)
+            {
+                DeleteDirectory(foundDir);
+            }
+
+            return success;
+        }
+
+        public void DeleteDirectory(SDir dir)
+        {
+            deleteFiles(dir);
+            var children = dir.Parent.Children;
+            var newChildren = new SDir[children.Length - 1];
+
+            int count = 0;
+            for (int i = 0; i < children.Length; i++)
+            {
+                if (dir != children[i])
+                {
+                    newChildren[count++] = children[i];
+                }
+            }
+
+            dir.Parent.Children = newChildren;
+
+            void deleteFiles(SDir target)
+            {
+                foreach (var file in target.Files)
+                {
+                    RemoveFile(file);
+                }
+
+                foreach (var child in target.Children)
+                {
+                    deleteFiles(child);
+                }
+            }
         }
 
         public bool FindDirectory(string securePath, out SDir foundDir)
@@ -117,6 +170,28 @@ namespace SecureData.IO
 
             foundDir = dir;
             return found;
+        }
+
+        public SDir CopyDirectory(string currentSecurePath, string targetSecurePath)
+        {
+            throw new NotImplementedException();
+        }
+
+        public SDir MoveDirectory(string currentSecurePath, string targetSecurePath)
+        {
+            throw new NotImplementedException();
+        }
+
+        public string RelativeToAbsolutePath(string relative)
+        {
+            if (relative[0] == '.')
+            {
+                return Path.Combine(ActiveDirectory.SecurePath, relative.Substring(1));
+            }
+            else
+            {
+                return relative;
+            }
         }
     }
 }

@@ -133,8 +133,6 @@ namespace SecureData.IO
             _directoryStream.Flush();
         }
 
-        
-
         public void Dispose()
         {
             _directoryStream.Close();

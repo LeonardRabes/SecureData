@@ -19,18 +19,26 @@ namespace SecureData.IO
 
         public SFile AddFile(string filePath)
         {
-            var fstream = new FileStream(filePath, FileMode.Open);
+            using (var fstream = new FileStream(filePath, FileMode.Open))
+            {
+                var file = AddFile(fstream, Path.GetFileName(filePath));
 
-            int[] chunks = _directoryManager.AllocateBytes(fstream.Length);
-            _directoryManager.SecureWrite(fstream, chunks, _cypher, _internalKey);
+                return file;
+            }
+        }
+
+        public SFile AddFile(Stream source, string fileName)
+        {
+            int[] chunks = _directoryManager.AllocateBytes(source.Length);
+            _directoryManager.SecureWrite(source, chunks, _cypher, _internalKey);
 
             var newFile = new SFile()
             {
-                Name = Path.GetFileName(filePath),
-                SecurePath = Path.Combine(ActiveDirectory.SecurePath, Path.GetFileName(filePath)),
+                Name = fileName,
+                SecurePath = Path.Combine(ActiveDirectory.SecurePath, fileName),
                 Parent = ActiveDirectory,
 
-                Size = fstream.Length,
+                Size = source.Length,
                 MemoryChunks = chunks
             };
 
@@ -40,9 +48,21 @@ namespace SecureData.IO
             f[f.Length - 1] = newFile;
 
             ActiveDirectory.Files = f;
-            fstream.Dispose();
 
             return newFile;
+        }
+
+        public bool RemoveFile(string securePath)
+        {
+            bool found = FindFile(securePath, out SFile file);
+            bool removed = false;
+
+            if (found)
+            {
+                removed = RemoveFile(file);
+            }
+
+            return found && removed;
         }
 
         public bool RemoveFile(SFile file)
@@ -50,7 +70,7 @@ namespace SecureData.IO
             var list = new List<SFile>(file.Parent.Files);
             bool success = list.Remove(file);
 
-            success = _directoryManager.Deallocate(file.MemoryChunks) && success;
+            _directoryManager.Deallocate(file.MemoryChunks);
 
             if (success)
             {
@@ -60,9 +80,35 @@ namespace SecureData.IO
             return success;
         }
 
+        public SFile CopyFile(string currentSecurePath, string targetSecurePath)
+        {
+            throw new NotImplementedException();
+        }
+
+        public SFile MoveFile(string currentSecurePath, string targetSecurePath)
+        {
+            throw new NotImplementedException();
+        }
+
         public void LoadFile(SFile file, Stream output)
         {
             _directoryManager.SecureRead(output, file.Size, file.MemoryChunks, _cypher, _internalKey);
+        }
+
+        public bool FindFile(string securePath, out SFile foundFile)
+        {
+            if (FindDirectory(Path.GetDirectoryName(securePath), out SDir dir))
+            {
+                string name = Path.GetFileName(securePath);
+                foundFile = Array.Find(dir.Files, x => x.Name == name);
+
+                return foundFile != null;
+            }
+            else
+            {
+                foundFile = null;
+                return false;
+            }
         }
     }
 }

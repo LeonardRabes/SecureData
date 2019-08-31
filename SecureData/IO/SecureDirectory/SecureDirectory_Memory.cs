@@ -59,10 +59,10 @@ namespace SecureData.IO
             /// <returns>Array of sector indices</returns>
             public int[] AllocateSectors(int length)
             {
-                int[] allocated = new int[length];
+                int[] available = new int[length];
                 Array.Sort(_allocatableSectors); //sort to occupy low indices first
 
-                //add new sectors if not enough free are available
+                //add new sectors if not enough free is available
                 if (_allocatableSectors.Length < length)
                 {
                     int diff = length - _allocatableSectors.Length;
@@ -79,9 +79,19 @@ namespace SecureData.IO
                     _allocatableSectors = newAllocSectors;
                 }
 
-                //copy out available sectors and return them
-                Array.Copy(_allocatableSectors, allocated, length);
-                return allocated;
+                //copy available sectors and return them
+                Array.Copy(_allocatableSectors, available, length);
+                return available;
+            }
+
+            public void Write(Stream source, int[] targetSectors)
+            {
+                throw new NotImplementedException();
+            }
+
+            public void Read(Stream output, long length, int[] targetSectors)
+            {
+                throw new NotImplementedException();
             }
 
             /// <summary>
@@ -142,20 +152,43 @@ namespace SecureData.IO
             /// Marks sectors as allocatable.
             /// </summary>
             /// <param name="targetSectors">Sectors to be marked</param>
-            /// <returns>Boolean, if deallocation was successfull</returns>
-            public bool Deallocate(int[] targetSectors)
+            public void Deallocate(int[] targetSectors)
             {
-                bool contains = ContainsSectors(_occupiedSectors, targetSectors); //check if target sectors were allocated
-                if (contains)
-                {
-                    AddSectors(ref _allocatableSectors, targetSectors);
-                    RemoveSectors(ref _occupiedSectors, targetSectors);
-                }
+                targetSectors = RemoveDuplicats(_allocatableSectors, targetSectors);
 
-                return contains;
+                AddSectors(ref _allocatableSectors, targetSectors);
+                RemoveSectors(ref _occupiedSectors, targetSectors);
             }
 
-            private bool ContainsSectors(int[] array, int[] sectors)
+            private int[] RemoveDuplicats(int[] filter, int[] sectors)
+            {
+                int dupli = 0;
+                for (int iter = 0; iter < sectors.Length; iter++)
+                {
+                    for (int i = 0; i < filter.Length; i++)
+                    {
+                        if (sectors[iter] == filter[i])
+                        {
+                            sectors[iter] = -1;
+                            dupli++;
+                        }
+                    }
+                }
+
+                int[] newSectors = new int[sectors.Length - dupli];
+                int count = 0;
+                for (int i = 0; i < sectors.Length; i++)
+                {
+                    if (sectors[i] > 0)
+                    {
+                        newSectors[count++] = sectors[i];
+                    }
+                }
+
+                return newSectors;
+            }
+
+            private bool ContainsSectors(int[] sectors, int[] array)
             {
                 int found = 0;
                 for (int iter = 0; iter < array.Length; iter++)
